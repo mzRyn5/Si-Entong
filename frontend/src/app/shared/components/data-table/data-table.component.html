@@ -1,0 +1,41 @@
+<!-- Data Table Container -->
+<div class="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
+  <!-- Table -->
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <!-- Header -->
+      <thead>
+        <tr class="bg-surface-soft border-b border-border">
+          @for (col of columns; track col.field) {
+            <th
+              class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted"
+              [class.text-right]="col.align === 'right'"
+              [class.text-center]="col.align === 'center'"
+              [style.width]="col.width ? col.width : 'auto'"
+            >
+              {{ col.header }}
+            </th>
+          }
+        </tr>
+      </thead>
+      <!-- Body -->
+      <tbody class="divide-y divide-border">
+        <ng-content></ng-content>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty State -->
+  @if (isEmpty) {
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+      <div class="w-16 h-16 rounded-full bg-surface-soft flex items-center justify-center mb-4">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-text-soft">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <p class="text-sm text-text-muted font-medium">{{ emptyMessage }}</p>
+    </div>
+  }
+</div>

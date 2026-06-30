@@ -1,0 +1,413 @@
+<section class="p-6 h-full flex flex-col min-w-0 w-full">
+  <!-- Header Page -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-text mb-1">{{ 'Kelola Pengguna' | translate }}</h2>
+      <p class="text-xs text-text-muted">
+        {{ (isSysAdmin() ? 'Kelola seluruh akun Owner dan Admin toko kelontong di platform.' : 'Kelola akun admin/penjaga untuk toko Anda (Maksimal 3 admin aktif).') | translate }}
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="openCreateForm()"
+      class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-bold rounded-xl shadow-md shadow-primary-900/20 hover:shadow-lg transition-all text-xs"
+    >
+      <span class="material-symbols-rounded text-sm">person_add</span>
+      <span>{{ 'Tambah User' | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface border border-border rounded-2xl p-4 mb-6 shadow-sm shrink-0">
+    <div class="flex flex-col md:flex-row gap-4 items-end">
+      <!-- Search -->
+      <div class="flex-1 w-full">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">{{ 'Cari User' | translate }}</label>
+        <div class="relative">
+          <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">search</span>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onFilterChange()"
+            placeholder="{{ 'Cari nama atau username...' | translate }}"
+            class="w-full pl-10 pr-4 py-2 bg-bg border border-border rounded-xl text-xs text-text placeholder-text-muted focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+          />
+        </div>
+      </div>
+
+      <!-- Role Filter (Only for SysAdmin since Owner only manages Admins) -->
+      <div class="w-full md:w-48" *ngIf="isSysAdmin()">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">{{ 'Filter Peran' | translate }}</label>
+        <select
+          [(ngModel)]="filterRole"
+          (change)="loadUsers()"
+          class="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs text-text focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all appearance-none cursor-pointer"
+        >
+          <option value="">{{ 'Semua Peran' | translate }}</option>
+          <option value="owner">{{ 'Owner' | translate }}</option>
+          <option value="admin">{{ 'Admin / Penjaga' | translate }}</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="w-full md:w-48">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">{{ 'Filter Status' | translate }}</label>
+        <select
+          [(ngModel)]="filterActive"
+          (change)="loadUsers()"
+          class="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs text-text focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all appearance-none cursor-pointer"
+        >
+          <option value="">{{ 'Semua Status' | translate }}</option>
+          <option value="true">{{ 'Aktif' | translate }}</option>
+          <option value="false">{{ 'Nonaktif' | translate }}</option>
+        </select>
+      </div>
+
+      <!-- Clear Button -->
+      <button
+        type="button"
+        (click)="clearFilters()"
+        class="w-full md:w-auto px-4 py-2 border border-border-strong hover:bg-bg rounded-xl text-xs text-text font-bold transition-colors select-none flex items-center justify-center gap-1.5"
+      >
+        <span class="material-symbols-rounded text-sm">filter_alt_off</span>
+        <span>{{ 'Reset' | translate }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <app-loading-state *ngIf="loading()"></app-loading-state>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !loading()" class="bg-danger-soft border border-danger/20 rounded-2xl p-6 text-center max-w-md mx-auto my-10 shadow-sm shrink-0">
+    <span class="material-symbols-rounded text-danger text-4xl mb-3">error_outline</span>
+    <h3 class="font-bold text-text mb-2">{{ 'Kesalahan memuat data' | translate }}</h3>
+    <p class="text-xs text-text-muted mb-4">{{ error() }}</p>
+    <button type="button" (click)="loadUsers()" class="px-4 py-2 bg-danger text-white text-xs font-bold rounded-xl hover:bg-danger-strong transition-colors">
+      {{ 'Coba Lagi' | translate }}
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="users().length === 0 && !loading() && !error()" class="bg-surface border border-border rounded-2xl p-10 text-center max-w-md mx-auto my-10 shadow-sm shrink-0">
+    <span class="material-symbols-rounded text-text-muted text-5xl mb-4">group</span>
+    <h3 class="font-bold text-text mb-2">{{ 'User Tidak Ditemukan' | translate }}</h3>
+    <p class="text-xs text-text-muted mb-4">{{ 'Tidak ada akun pengguna yang terdaftar berdasarkan filter saat ini.' | translate }}</p>
+    <button type="button" (click)="openCreateForm()" class="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all">
+      {{ 'Tambah User Baru' | translate }}
+    </button>
+  </div>
+
+  <!-- Table Content -->
+  <div *ngIf="users().length > 0 && !loading() && !error()" class="flex-1 min-h-0 bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
+    <div class="flex-1 overflow-x-auto min-h-0">
+      <table class="w-full border-collapse text-left">
+        <thead>
+          <tr class="border-b border-border bg-surface-soft text-[10px] font-bold text-text-muted uppercase tracking-wider select-none sticky top-0 z-10">
+            <th class="px-6 py-4">{{ 'Nama' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Username' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Peran' | translate }}</th>
+            <th class="px-6 py-4" *ngIf="isSysAdmin()">{{ 'Toko' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Tanggal Dibuat' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Status' | translate }}</th>
+            <th class="px-6 py-4 text-right">{{ 'Aksi' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border text-xs text-text">
+          <tr *ngFor="let user of users()" class="hover:bg-bg/40 transition-colors">
+            <!-- Name -->
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 font-bold flex items-center justify-center">
+                  {{ user.name.charAt(0).toUpperCase() }}
+                </span>
+                <span class="font-bold text-text">{{ user.name }}</span>
+              </div>
+            </td>
+            <!-- Username -->
+            <td class="px-6 py-4 font-medium text-text-muted">{{ user.username }}</td>
+            <!-- Role -->
+            <td class="px-6 py-4">
+              <span 
+                class="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border"
+                [ngClass]="{
+                  'bg-indigo-50 border-indigo-100 text-indigo-700': user.role === 'sysadmin',
+                  'bg-primary-50 border-primary-100 text-primary-700': user.role === 'owner',
+                  'bg-amber-50 border-amber-100 text-amber-700': user.role === 'admin'
+                }"
+              >
+                {{ user.role | translate }}
+              </span>
+            </td>
+            <!-- Store (SysAdmin only) -->
+            <td class="px-6 py-4 text-text-muted" *ngIf="isSysAdmin()">
+              {{ getStoreName(user.storeId) }}
+            </td>
+            <!-- CreatedAt -->
+            <td class="px-6 py-4 text-text-muted">
+              {{ user.createdAt | date:'dd MMM yyyy, HH:mm' }}
+            </td>
+            <!-- Status -->
+            <td class="px-6 py-4">
+              <app-badge [variant]="user.isActive ? 'success' : 'danger'">
+                {{ user.isActive ? ('Aktif' | translate) : ('Nonaktif' | translate) }}
+              </app-badge>
+            </td>
+            <!-- Actions -->
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-1.5">
+                <!-- Edit button -->
+                <button
+                  type="button"
+                  (click)="openEditForm(user)"
+                  class="w-8 h-8 flex items-center justify-center border border-border hover:bg-bg rounded-lg text-text hover:text-primary-600 transition-colors"
+                  title="{{ 'Ubah User' | translate }}"
+                >
+                  <span class="material-symbols-rounded text-base">edit</span>
+                </button>
+                <!-- Reset password button -->
+                <button
+                  type="button"
+                  (click)="openResetPassword(user)"
+                  class="w-8 h-8 flex items-center justify-center border border-border hover:bg-bg rounded-lg text-text hover:text-amber-600 transition-colors"
+                  title="{{ 'Reset Password' | translate }}"
+                >
+                  <span class="material-symbols-rounded text-base">lock_reset</span>
+                </button>
+                <!-- Toggle Status button -->
+                <button
+                  type="button"
+                  (click)="toggleUserStatus(user)"
+                  class="w-8 h-8 flex items-center justify-center border border-border rounded-lg text-text transition-colors"
+                  [ngClass]="user.isActive ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-success-soft hover:text-success'"
+                  title="{{ (user.isActive ? 'Nonaktifkan' : 'Aktifkan') | translate }}"
+                >
+                  <span class="material-symbols-rounded text-base">
+                    {{ user.isActive ? 'block' : 'check_circle' }}
+                  </span>
+                </button>
+                <!-- Delete button -->
+                <button
+                  type="button"
+                  (click)="openDeleteConfirm(user)"
+                  class="w-8 h-8 flex items-center justify-center border border-border hover:bg-danger-soft rounded-lg text-text hover:text-danger transition-colors"
+                  title="{{ 'Hapus User' | translate }}"
+                >
+                  <span class="material-symbols-rounded text-base">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-6 py-4 border-t border-border bg-surface shrink-0 flex items-center justify-between">
+      <app-pagination
+        [currentPage]="currentPage"
+        [totalPages]="totalPages()"
+        [totalItems]="totalItems()"
+        [pageSize]="pageSize"
+        (pageChange)="onPageChange($event)"
+      ></app-pagination>
+    </div>
+  </div>
+
+  <!-- Form Drawer (Create & Edit) -->
+  <div *ngIf="showFormDrawer()" class="fixed inset-0 z-50 flex justify-end">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-all" (click)="closeFormDrawer()"></div>
+    
+    <!-- Drawer Panel -->
+    <div class="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 transition-transform duration-300">
+      <div class="flex items-center justify-between p-5 border-b border-border bg-surface-soft">
+        <div>
+          <h3 class="font-bold text-text">{{ (isEditMode() ? 'Ubah Pengguna' : 'Tambah Pengguna Baru') | translate }}</h3>
+          <p class="text-[10px] text-text-muted mt-0.5">{{ 'Isi formulir pendaftaran pengguna di bawah ini.' | translate }}</p>
+        </div>
+        <button type="button" (click)="closeFormDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg text-text-muted hover:text-text transition-colors">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form #userForm="ngForm" (ngSubmit)="onSubmitForm(userForm)" class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+          <!-- Name -->
+          <div>
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Nama Lengkap' | translate }} *</label>
+            <input
+              type="text"
+              name="name"
+              [(ngModel)]="formModel.name"
+              required
+              maxlength="100"
+              placeholder="{{ 'Nama Lengkap' | translate }}"
+              class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium"
+              #nameInput="ngModel"
+              [class.border-danger]="userForm.submitted && nameInput.invalid"
+            />
+            <p *ngIf="userForm.submitted && nameInput.invalid" class="mt-1 text-[10px] text-danger">{{ 'Nama Lengkap wajib diisi.' | translate }}</p>
+          </div>
+
+          <!-- Username (Only editable on Create) -->
+          <div>
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Username Login' | translate }} *</label>
+            <input
+              type="text"
+              name="username"
+              [(ngModel)]="formModel.username"
+              required
+              [disabled]="isEditMode()"
+              placeholder="{{ 'Username' | translate }}"
+              class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium disabled:bg-bg disabled:text-text-muted"
+              #usernameInput="ngModel"
+              [class.border-danger]="userForm.submitted && usernameInput.invalid"
+            />
+            <p *ngIf="userForm.submitted && usernameInput.invalid" class="mt-1 text-[10px] text-danger">{{ 'Username wajib diisi.' | translate }}</p>
+          </div>
+
+          <!-- Password (Only for Create) -->
+          <div *ngIf="!isEditMode()">
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Password Akun' | translate }} *</label>
+            <input
+              type="password"
+              name="password"
+              [(ngModel)]="formModel.password"
+              required
+              minlength="6"
+              placeholder="{{ 'Minimal 6 karakter' | translate }}"
+              class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium"
+              #passwordInput="ngModel"
+              [class.border-danger]="userForm.submitted && passwordInput.invalid"
+            />
+            <p *ngIf="userForm.submitted && passwordInput.invalid" class="mt-1 text-[10px] text-danger">{{ 'Password minimal 6 karakter.' | translate }}</p>
+          </div>
+
+          <!-- Role -->
+          <div>
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Peran / Hak Akses' | translate }} *</label>
+            <!-- SysAdmin can choose Owner or Admin -->
+            <select
+              *ngIf="isSysAdmin()"
+              name="role"
+              [(ngModel)]="formModel.role"
+              required
+              class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all cursor-pointer font-medium"
+            >
+              <option value="owner">{{ 'Owner' | translate }}</option>
+              <option value="admin">{{ 'Admin / Penjaga' | translate }}</option>
+            </select>
+            <!-- Owner is locked to Admin -->
+            <div *ngIf="!isSysAdmin()" class="px-3 py-2 bg-bg border border-border rounded-xl text-xs text-text-muted font-semibold">
+              {{ 'Admin / Penjaga' | translate }}
+            </div>
+          </div>
+
+          <!-- Store Selection (SysAdmin only when role is Owner or Admin) -->
+          <div *ngIf="isSysAdmin() && formModel.role !== 'sysadmin'">
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Penempatan Toko' | translate }} *</label>
+            <select
+              name="storeId"
+              [(ngModel)]="formModel.storeId"
+              required
+              class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all cursor-pointer font-medium"
+              #storeInput="ngModel"
+              [class.border-danger]="userForm.submitted && storeInput.invalid"
+            >
+              <option value="" disabled>{{ '-- Pilih Toko --' | translate }}</option>
+              <option *ngFor="let s of storesList()" [value]="s.id">{{ s.name }}</option>
+            </select>
+            <p *ngIf="userForm.submitted && storeInput.invalid" class="mt-1 text-[10px] text-danger">{{ 'Toko penempatan wajib dipilih.' | translate }}</p>
+          </div>
+
+          <!-- Status Keaktifan -->
+          <div class="flex items-center justify-between pt-3 border-t border-border">
+            <div>
+              <span class="block text-xs font-bold text-text">{{ 'Status Akun Aktif' | translate }}</span>
+              <span class="block text-[10px] text-text-muted mt-0.5">{{ 'Jika nonaktif, user tidak dapat login ke aplikasi.' | translate }}</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="isActive"
+                [(ngModel)]="formModel.isActive"
+                class="sr-only peer"
+              />
+              <div class="w-10 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="p-5 border-t border-border bg-surface-soft flex gap-3 shrink-0">
+          <button type="button" (click)="closeFormDrawer()" class="flex-1 py-2 px-4 border border-border-strong hover:bg-bg text-xs font-bold rounded-xl transition-colors" [disabled]="saving()">
+            {{ 'Batal' | translate }}
+          </button>
+          <button type="submit" class="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors" [disabled]="saving() || userForm.invalid">
+            {{ (saving() ? 'Memproses...' : 'Simpan') | translate }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div *ngIf="showResetModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" (click)="closeResetModal()"></div>
+    <div class="relative bg-white border border-border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl z-10 scale-in">
+      <div class="p-5 border-b border-border bg-surface-soft flex justify-between items-center">
+        <h3 class="font-bold text-text">{{ 'Reset Password User' | translate }}</h3>
+        <button type="button" (click)="closeResetModal()" class="w-8 h-8 flex items-center justify-center hover:bg-bg text-text-muted hover:text-text rounded-lg transition-colors">
+          <span class="material-symbols-rounded text-lg">close</span>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-text-muted">
+          {{ 'Anda sedang mereset password untuk akun' | translate }} <strong>{{ resetTarget()?.username }}</strong>.
+        </p>
+        <div>
+          <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Password Baru *' | translate }}</label>
+          <input
+            type="password"
+            [(ngModel)]="resetPasswordValue"
+            minlength="6"
+            placeholder="{{ 'Password Baru (Min. 6 karakter)' | translate }}"
+            class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium"
+          />
+        </div>
+      </div>
+      <div class="px-5 py-4 border-t border-border bg-surface-soft flex justify-end gap-3">
+        <button type="button" (click)="closeResetModal()" class="px-4 py-2 border border-border-strong hover:bg-bg text-xs font-bold rounded-xl transition-colors" [disabled]="resetting()">
+          {{ 'Batal' | translate }}
+        </button>
+        <button type="button" (click)="executeResetPassword()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors" [disabled]="resetting() || !resetPasswordValue || resetPasswordValue.length < 6">
+          {{ (resetting() ? 'Memproses...' : 'Ubah Password') | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Dialog -->
+  <div *ngIf="showDeleteDialog()" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" (click)="closeDeleteDialog()"></div>
+    <div class="relative bg-white border border-border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl z-10 scale-in">
+      <div class="p-5 text-center">
+        <span class="w-14 h-14 rounded-full bg-danger-soft text-danger flex items-center justify-center mx-auto mb-4">
+          <span class="material-symbols-rounded text-3xl">delete_forever</span>
+        </span>
+        <h3 class="font-bold text-text text-base mb-2">{{ 'Hapus User Secara Permanen?' | translate }}</h3>
+        <p class="text-xs text-text-muted max-w-xs mx-auto mb-6">
+          {{ 'Apakah Anda yakin ingin menghapus user' | translate }} <strong>{{ deleteTarget()?.name }}</strong>? {{ 'Tindakan ini tidak dapat dibatalkan.' | translate }}
+        </p>
+        <div class="flex gap-3">
+          <button type="button" (click)="closeDeleteDialog()" class="flex-1 py-2 px-4 border border-border-strong hover:bg-bg text-xs font-bold rounded-xl transition-colors" [disabled]="deleting()">
+            {{ 'Batal' | translate }}
+          </button>
+          <button type="button" (click)="executeDelete()" class="flex-1 py-2 px-4 bg-danger hover:bg-danger-strong text-white text-xs font-bold rounded-xl shadow-md transition-colors" [disabled]="deleting()">
+            {{ (deleting() ? 'Menghapus...' : 'Ya, Hapus') | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

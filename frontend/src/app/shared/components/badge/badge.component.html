@@ -1,0 +1,15 @@
+<span
+  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide"
+  [class.bg-success-soft]="variant === 'success'"
+  [class.text-success]="variant === 'success'"
+  [class.bg-warning-soft]="variant === 'warning'"
+  [class.text-warning]="variant === 'warning'"
+  [class.bg-danger-soft]="variant === 'danger'"
+  [class.text-danger]="variant === 'danger'"
+  [class.bg-info-soft]="variant === 'info'"
+  [class.text-info]="variant === 'info'"
+  [class.bg-primary-100]="variant === 'primary'"
+  [class.text-primary-700]="variant === 'primary'"
+>
+  <ng-content></ng-content>
+</span>

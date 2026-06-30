@@ -1,0 +1,28 @@
+// Styles for audit logs list page
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+  .comparison-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.old-values-col {
+  border: 1.5px solid var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+.new-values-col {
+  border: 1.5px solid var(--color-success);
+  border-radius: var(--radius-md);
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+}

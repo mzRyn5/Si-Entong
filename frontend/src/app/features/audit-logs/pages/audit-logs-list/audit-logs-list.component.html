@@ -1,0 +1,189 @@
+<section class="page">
+  <header class="page-header mb-6">
+    <div class="page-title">
+      <h2>{{ 'Log Aktivitas' | translate }}</h2>
+      <p>{{ 'Pantau rekaman riwayat log aktivitas pengguna, perubahan data master, dan aksi audit penting sistem.' | translate }}</p>
+    </div>
+  </header>
+
+  <!-- Owner Restricted Notification -->
+  <div class="state-wrapper state-error p-6 text-center card" *ngIf="!isOwner()">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-danger mx-auto mb-3" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+    <h3>{{ 'Akses Ditolak' | translate }}</h3>
+    <p class="text-muted mt-2">{{ 'Halaman log aktivitas audit hanya diperuntukkan bagi pemilik toko (owner) untuk memantau keamanan sistem.' | translate }}</p>
+  </div>
+
+  <div *ngIf="isOwner()">
+    <!-- Filters -->
+    <app-filter-bar>
+      <div class="filter-select-wrapper">
+        <select
+          class="form-input filter-select"
+          [(ngModel)]="filterModule"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Filter Modul"
+        >
+          <option value="">{{ 'Semua Modul' | translate }}</option>
+          <option value="Auth">{{ 'Auth & Sesi' | translate }}</option>
+          <option value="Product">{{ 'Produk' | translate }}</option>
+          <option value="Category">{{ 'Kategori' | translate }}</option>
+          <option value="Unit">{{ 'Satuan' | translate }}</option>
+          <option value="Supplier">{{ 'Supplier' | translate }}</option>
+          <option value="Customer">{{ 'Pelanggan' | translate }}</option>
+          <option value="Sales">{{ 'Penjualan POS' | translate }}</option>
+          <option value="Purchases">{{ 'Pembelian' | translate }}</option>
+          <option value="Expenses">{{ 'Pengeluaran' | translate }}</option>
+          <option value="Inventory">{{ 'Inventori & Stok' | translate }}</option>
+          <option value="CashSession">{{ 'Sesi Kasir' | translate }}</option>
+          <option value="Settings">{{ 'Pengaturan Toko' | translate }}</option>
+        </select>
+      </div>
+
+      <div class="filter-date-group">
+        <input
+          type="date"
+          class="form-input date-input"
+          [(ngModel)]="fromDate"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Dari Tanggal"
+        />
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <input
+          type="date"
+          class="form-input date-input"
+          [(ngModel)]="toDate"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Hingga Tanggal"
+        />
+      </div>
+
+      <button *ngIf="filterModule || fromDate || toDate" class="btn btn-secondary btn-sm" type="button" (click)="clearFilters()">
+        {{ 'Hapus filter' | translate }}
+      </button>
+      <span class="filter-total">{{ totalItems() }} {{ 'aktivitas' | translate }}</span>
+    </app-filter-bar>
+
+    <!-- Table Logs -->
+    <article class="card table-card">
+      <div class="state-wrapper" *ngIf="loading()">
+        <app-loading-state [label]="'Memuat log aktivitas...' | translate" />
+      </div>
+
+      <div class="state-wrapper state-error" *ngIf="!loading() && error()">
+        <p>{{ error() }}</p>
+        <button class="btn btn-secondary btn-sm mt-2" type="button" (click)="loadLogs()">{{ 'Coba Lagi' | translate }}</button>
+      </div>
+
+      <div class="state-wrapper state-empty" *ngIf="!loading() && !error() && logs().length === 0">
+        <h3>{{ 'Belum Ada Log Aktivitas' | translate }}</h3>
+        <p>{{ 'Aktivitas sistem yang direkam akan ditampilkan di halaman ini.' | translate }}</p>
+      </div>
+
+      <div class="table-container" *ngIf="!loading() && !error() && logs().length > 0">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 50px" class="text-center">{{ 'No' | translate }}</th>
+              <th scope="col" style="width: 150px">{{ 'Waktu' | translate }}</th>
+              <th scope="col" style="width: 140px">{{ 'Pengguna' | translate }}</th>
+              <th scope="col" style="width: 120px" class="text-center">{{ 'Modul' | translate }}</th>
+              <th scope="col">{{ 'Aktivitas / Tindakan' | translate }}</th>
+              <th scope="col" style="width: 130px">{{ 'Alamat IP' | translate }}</th>
+              <th scope="col" style="width: 100px" class="text-center">{{ 'Detail' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of logs(); let idx = index" class="clickable-row" (click)="viewDetail(l)">
+              <td class="text-center text-muted" (click)="$event.stopPropagation()">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+              <td>{{ l.createdAt | dateId: 'datetime' }}</td>
+              <td><strong>{{ l.userName }}</strong></td>
+              <td class="text-center">
+                <app-badge variant="info">{{ l.module | translate }}</app-badge>
+              </td>
+              <td>
+                <span class="font-semibold">{{ l.action }}</span>
+                <span class="text-xs text-muted block" *ngIf="l.entityName">{{ 'Objek' | translate }}: {{ l.entityName }} ({{ l.entityId }})</span>
+              </td>
+              <td class="font-mono text-xs">{{ l.ipAddress || '&mdash;' }}</td>
+              <td class="text-center" (click)="$event.stopPropagation()">
+                <button class="btn btn-ghost btn-sm" type="button" (click)="viewDetail(l)">{{ 'Periksa' | translate }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <app-pagination
+          [currentPage]="currentPage"
+          [totalPages]="totalPages()"
+          [totalItems]="totalItems()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        />
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- Drawer: Detail Audit Log -->
+<div class="drawer-backdrop" *ngIf="showDetailDrawer()" (click)="closeDetailDrawer()" role="presentation"></div>
+<aside class="drawer" [class.drawer-open]="showDetailDrawer()" *ngIf="showDetailDrawer() && selectedLog(); let log" role="dialog" [attr.aria-label]="'Rincian Log Aktivitas' | translate">
+  <header class="drawer-header">
+    <div class="drawer-title-stack">
+      <h3>{{ 'Detail Log Aktivitas' | translate }}</h3>
+      <span class="text-muted">{{ log.createdAt | dateId: 'datetime' }}</span>
+    </div>
+    <button class="drawer-close" type="button" (click)="closeDetailDrawer()">&times;</button>
+  </header>
+
+  <div class="drawer-body">
+    <!-- Meta Info -->
+    <div class="info-grid card mb-4">
+      <div class="info-item">
+        <span>{{ 'Pengguna' | translate }}</span>
+        <strong>{{ log.userName }} ({{ log.userId }})</strong>
+      </div>
+      <div class="info-item">
+        <span>{{ 'Modul / Sektor' | translate }}</span>
+        <strong>{{ log.module | translate }}</strong>
+      </div>
+      <div class="info-item">
+        <span>{{ 'Tindakan' | translate }}</span>
+        <strong class="color-primary">{{ log.action }}</strong>
+      </div>
+      <div class="info-item" *ngIf="log.ipAddress">
+        <span>IP Address</span>
+        <strong class="font-mono text-xs">{{ log.ipAddress }}</strong>
+      </div>
+    </div>
+
+    <!-- User Agent -->
+    <div class="card p-3 mb-4 text-xs font-mono text-muted" *ngIf="log.userAgent">
+      <strong>User Agent:</strong>
+      <p class="mt-1 leading-normal">{{ log.userAgent }}</p>
+    </div>
+
+    <!-- Values comparison -->
+    <div class="values-comparison" *ngIf="log.oldValues || log.newValues">
+      <h4 class="mb-2 font-semibold">{{ 'Perubahan Data' | translate }}</h4>
+      
+      <!-- Compare Old Values vs New Values -->
+      <div class="comparison-grid">
+        <div class="old-values-col card" *ngIf="log.oldValues">
+          <span class="text-danger font-bold text-xs">{{ 'Nilai Lama' | translate }}:</span>
+          <pre class="mt-2 text-xs overflow-x-auto leading-normal bg-danger-soft/20 text-danger border border-danger/20 p-3 rounded-lg font-mono">{{ log.oldValues }}</pre>
+        </div>
+        <div class="new-values-col card" *ngIf="log.newValues">
+          <span class="text-success font-bold text-xs">{{ 'Nilai Baru' | translate }}:</span>
+          <pre class="mt-2 text-xs overflow-x-auto leading-normal bg-success-soft/20 text-success border border-success/20 p-3 rounded-lg font-mono">{{ log.newValues }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="drawer-footer-actions">
+    <button class="btn btn-secondary btn-block" type="button" (click)="closeDetailDrawer()">{{ 'Tutup' | translate }}</button>
+  </footer>
+</aside>

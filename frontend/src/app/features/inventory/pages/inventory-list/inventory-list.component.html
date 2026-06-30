@@ -1,0 +1,544 @@
+<section class="p-6">
+  <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-primary-900">{{ 'Stok & Koreksi' | translate }}</h2>
+      <p class="text-sm text-text-muted mt-1">{{ 'Kelola stok barang masuk/keluar, koreksi stok opname.' | translate }}</p>
+    </div>
+
+    @if (activeTab() === 'opname') {
+      <button class="px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all inline-flex items-center gap-2" type="button" (click)="openCreateOpname()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {{ 'Buat Opname' | translate }}
+      </button>
+    }
+  </header>
+
+  <!-- Tabs Navigation -->
+  <nav class="tabs-navigation" aria-label="Menu Inventori">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'summary'"
+      type="button"
+      (click)="switchTab('summary')"
+    >
+      {{ 'Ringkasan Stok' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'movements'"
+      type="button"
+      (click)="switchTab('movements')"
+    >
+      {{ 'Mutasi Stok' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'opname'"
+      type="button"
+      (click)="switchTab('opname')"
+    >
+      {{ 'Stok Opname' | translate }}
+    </button>
+  </nav>
+
+  <!-- TAB: SUMMARY STOK -->
+  @if (activeTab() === 'summary') {
+    <div>
+      <app-filter-bar>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            class="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            type="search"
+            [placeholder]="'Cari Produk...' | translate"
+            [(ngModel)]="summarySearch"
+            (ngModelChange)="onFilterChange()"
+            aria-label="Cari produk"
+          />
+        </div>
+
+        <select
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="summaryCategory"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Filter Kategori"
+        >
+          <option value="">{{ 'Filter Kategori' | translate }}</option>
+          @for (cat of categories(); track cat.id) {
+            <option [value]="cat.id">
+              {{ cat.name }}
+            </option>
+          }
+        </select>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            class="w-4 h-4 text-primary-600 rounded border-border focus:ring-primary-500"
+            [(ngModel)]="summaryLowStockOnly"
+            (ngModelChange)="onFilterChange()"
+          />
+          <span class="text-sm text-text">{{ 'Hanya Stok Menipis' | translate }}</span>
+        </label>
+
+        @if (summarySearch || summaryCategory || summaryLowStockOnly) {
+          <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="clearSummaryFilters()">
+            {{ 'Hapus filter' | translate }}
+          </button>
+        }
+        <span class="text-sm text-text-muted">{{ summaryTotalItems() }} {{ 'produk' | translate }}</span>
+      </app-filter-bar>
+
+      <!-- Summary Table -->
+      <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+        @if (loadingSummary()) {
+          <div class="flex items-center justify-center py-12">
+            <app-loading-state label="Memuat ringkasan stok..." />
+          </div>
+        }
+
+        @if (!loadingSummary() && summaryItems().length === 0) {
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Stok Toko Kosong' | translate }}</h3>
+            <p class="text-sm text-text-muted mb-2">{{ 'Tidak ada produk yang tercatat atau seluruh stok produk saat ini kosong.' | translate }}</p>
+            <p class="text-xs text-text-soft">{{ 'Silakan tambahkan data produk baru di menu Produk atau lakukan pembelian untuk mengisi stok.' | translate }}</p>
+          </div>
+        }
+
+        @if (!loadingSummary() && summaryItems().length > 0) {
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-surface-soft border-b border-border">
+                <tr>
+                  <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 60px">{{ 'No' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 140px">{{ 'SKU' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Nama Produk' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 120px">{{ 'Stok' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 150px">{{ 'Harga Jual' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 140px">{{ 'Status' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (item of summaryItems(); track item.productId; let idx = $index) {
+                  <tr class="hover:bg-surface-soft/50 transition-colors">
+                    <td class="px-4 py-3 text-center text-sm text-text-muted">{{ (summaryPage - 1) * pageSize + idx + 1 }}</td>
+                    <td class="px-4 py-3 text-sm font-mono font-semibold text-text">{{ item.sku }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-text">{{ item.name }}</td>
+                    <td class="px-4 py-3 text-right text-sm font-mono" [class.text-danger]="item.currentStock <= 0">
+                      {{ item.currentStock }}
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm font-mono text-text">{{ item.sellingPrice | currencyIdr }}</td>
+                    <td class="px-4 py-3 text-center">
+                      <app-badge [variant]="item.currentStock <= 0 ? 'danger' : item.currentStock <= item.lowStockThreshold ? 'warning' : 'success'">
+                        {{ (item.currentStock <= 0 ? 'Habis' : item.currentStock <= item.lowStockThreshold ? 'Menipis' : 'Aman') | translate }}
+                      </app-badge>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <app-pagination
+              [currentPage]="summaryPage"
+              [totalPages]="summaryTotalPages()"
+              [totalItems]="summaryTotalItems()"
+              [pageSize]="pageSize"
+              (pageChange)="onSummaryPageChange($event)"
+            />
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  <!-- TAB: MUTASI STOK -->
+  @if (activeTab() === 'movements') {
+    <div>
+      <app-filter-bar>
+        <select
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="movementType"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Tipe Mutasi"
+        >
+          <option value="">{{ 'Semua Tipe' | translate }}</option>
+          <option value="Sale">{{ 'Penjualan' | translate }}</option>
+          <option value="Purchase">{{ 'Pembelian' | translate }}</option>
+          <option value="SalesReturn">{{ 'Retur Jual' | translate }}</option>
+          <option value="PurchaseReturn">{{ 'Retur Beli' | translate }}</option>
+          <option value="StockOpname">{{ 'Stok Opname' | translate }}</option>
+          <option value="Adjustment">{{ 'Koreksi' | translate }}</option>
+          <option value="InitialStock">{{ 'Saldo Awal' | translate }}</option>
+        </select>
+
+        <div class="flex items-center gap-2">
+          <input
+            type="date"
+            class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            [(ngModel)]="movementFromDate"
+            (ngModelChange)="onFilterChange()"
+            aria-label="Dari Tanggal"
+          />
+          <span class="text-text-muted text-sm">s/d</span>
+          <input
+            type="date"
+            class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            [(ngModel)]="movementToDate"
+            (ngModelChange)="onFilterChange()"
+            aria-label="Hingga Tanggal"
+          />
+        </div>
+
+        @if (movementType || movementFromDate || movementToDate) {
+          <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="clearMovementFilters()">
+            {{ 'Hapus filter' | translate }}
+          </button>
+        }
+        <span class="text-sm text-text-muted">{{ movementTotalItems() }} mutasi</span>
+      </app-filter-bar>
+
+      <!-- Movements Table -->
+      <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+        @if (loadingMovements()) {
+          <div class="flex items-center justify-center py-12">
+            <app-loading-state label="Memuat mutasi stok..." />
+          </div>
+        }
+
+        @if (!loadingMovements() && movementItems().length === 0) {
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Tidak Ada Data Mutasi' | translate }}</h3>
+            <p class="text-sm text-text-muted">{{ 'Belum ada aktivitas penambahan atau pengurangan stok produk.' | translate }}</p>
+          </div>
+        }
+
+        @if (!loadingMovements() && movementItems().length > 0) {
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-surface-soft border-b border-border">
+                <tr>
+                  <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 50px">No</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 140px">{{ 'Tanggal' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">Nama Produk</th>
+                  <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 120px">Tipe</th>
+                  <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 100px">{{ 'Qty Masuk' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 100px">{{ 'Qty Keluar' | translate }}</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">Catatan</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (m of movementItems(); track m.id; let idx = $index) {
+                  <tr class="hover:bg-surface-soft/50 transition-colors">
+                    <td class="px-4 py-3 text-center text-sm text-text-muted">{{ (movementPage - 1) * pageSize + idx + 1 }}</td>
+                    <td class="px-4 py-3 text-sm text-text">{{ m.movementDate | dateId: 'datetime' }}</td>
+                    <td class="px-4 py-3">
+                      <p class="text-sm font-semibold text-text">{{ m.productName }}</p>
+                      <p class="text-[10px] text-text-muted font-mono">{{ m.sku }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <app-badge variant="info">{{ m.movementType }}</app-badge>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm font-mono text-success">
+                      {{ m.quantityChange > 0 ? m.quantityChange : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm font-mono text-danger">
+                      {{ m.quantityChange < 0 ? (-m.quantityChange) : '—' }}
+                    </td>
+                    <td class="px-4 py-3"><span class="text-xs text-text-muted">{{ m.notes || '—' }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <app-pagination
+              [currentPage]="movementPage"
+              [totalPages]="movementTotalPages()"
+              [totalItems]="movementTotalItems()"
+              [pageSize]="pageSize"
+              (pageChange)="onMovementPageChange($event)"
+            />
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  <!-- TAB: STOCK OPNAME -->
+  @if (activeTab() === 'opname') {
+    <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+      @if (loadingOpnames()) {
+        <div class="flex items-center justify-center py-12">
+          <app-loading-state label="Memuat data opname..." />
+        </div>
+      }
+
+      @if (!loadingOpnames() && opnameList().length === 0) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Belum Ada Stock Opname' | translate }}</h3>
+          <p class="text-sm text-text-muted mb-3">{{ 'Mulai lakukan pencocokan stok fisik barang dengan sistem.' | translate }}</p>
+          <button class="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all text-sm inline-flex items-center gap-2" type="button" (click)="openCreateOpname()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {{ 'Buat Opname' | translate }}
+          </button>
+        </div>
+      }
+
+      @if (!loadingOpnames() && opnameList().length > 0) {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-surface-soft border-b border-border">
+              <tr>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 60px">No</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">No. Opname</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Tanggal Opname' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Jumlah Item' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 120px">Status</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 150px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (o of opnameList(); track o.id; let idx = $index) {
+                <tr class="hover:bg-surface-soft/50 cursor-pointer transition-colors" (click)="viewOpnameDetail(o.id)">
+                  <td class="px-4 py-3 text-center text-sm text-text-muted" (click)="$event.stopPropagation()">{{ (opnamePage - 1) * pageSize + idx + 1 }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-text">{{ o.opnameNumber }}</td>
+                  <td class="px-4 py-3 text-sm text-text">{{ o.opnameDate | dateId: 'date' }}</td>
+                  <td class="px-4 py-3 text-center text-sm font-mono text-text">{{ o.totalItems }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <app-badge [variant]="o.status === 'Posted' ? 'success' : o.status === 'Draft' ? 'warning' : 'danger'">
+                      {{ o.status }}
+                    </app-badge>
+                  </td>
+                  <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
+                    <div class="flex items-center justify-center gap-1">
+                      <button class="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" type="button" (click)="viewOpnameDetail(o.id)">Detail</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <app-pagination
+            [currentPage]="opnamePage"
+            [totalPages]="opnameTotalPages()"
+            [totalItems]="opnameTotalItems()"
+            [pageSize]="pageSize"
+            (pageChange)="onOpnamePageChange($event)"
+          />
+        </div>
+      }
+    </article>
+  }
+</section>
+
+<!-- Drawer: Detail Stock Opname -->
+@if (showDetailDrawer()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeDetailDrawer()" role="presentation"></div>
+  <aside class="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform transition-transform" [class.translate-x-0]="showDetailDrawer()" [class.translate-x-full]="!showDetailDrawer()" role="dialog">
+    @if (detailLoading()) {
+      <div class="flex items-center justify-center h-full">
+        <app-loading-state label="Memuat rincian..." />
+      </div>
+    }
+
+    @if (!detailLoading() && detailData(); as detail) {
+      <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div>
+          <h3 class="text-lg font-bold text-primary-900">{{ detail.opnameNumber }}</h3>
+          <span class="text-sm text-text-muted">{{ 'Tanggal Opname' | translate }}: {{ detail.opnameDate | dateId: 'date' }}</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted" type="button" (click)="closeDetailDrawer()">&times;</button>
+      </header>
+
+      <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 140px);">
+        <div class="bg-surface-soft rounded-xl p-4 mb-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="text-xs text-text-muted">Status</span>
+              <div class="mt-1">
+                <app-badge [variant]="detail.status === 'Posted' ? 'success' : detail.status === 'Draft' ? 'warning' : 'danger'">
+                  {{ detail.status }}
+                </app-badge>
+              </div>
+            </div>
+            @if (detail.notes) {
+              <div>
+                <span class="text-xs text-text-muted">Catatan</span>
+                <p class="text-sm font-semibold text-text">{{ detail.notes }}</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Items comparison -->
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Detail Rincian Produk' | translate }}</h4>
+          <div class="overflow-x-auto border border-border rounded-xl">
+            <table class="w-full">
+              <thead class="bg-surface-soft border-b border-border">
+                <tr>
+                  <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-text-muted">Produk</th>
+                  <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 70px">Sistem</th>
+                  <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 70px">{{ 'Fisik' | translate }}</th>
+                  <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 70px">{{ 'Selisih' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (item of detail.items; track item.productId) {
+                  <tr>
+                    <td class="px-3 py-2 text-sm font-semibold text-text">{{ item.productName }}</td>
+                    <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ item.systemStock }}</td>
+                    <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ item.physicalStock }}</td>
+                    <td class="px-3 py-2 text-right text-sm font-mono" [class.text-danger]="item.difference < 0" [class.text-success]="item.difference > 0">
+                      {{ item.difference > 0 ? '+' : '' }}{{ item.difference }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <footer class="px-6 py-4 border-t border-border bg-surface">
+        @if (detail.status === 'Draft') {
+          <div class="flex flex-col gap-2">
+            <button class="w-full px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all" type="button" (click)="postOpname(detail.id)" [disabled]="saving()">
+              Posting Opname (Sesuaikan Stok)
+            </button>
+            <button class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="openEditOpname(detail)">
+              Ubah Draft
+            </button>
+          </div>
+        }
+        @if (detail.status === 'Posted') {
+          <button class="w-full px-4 py-2.5 bg-gradient-to-r from-danger to-danger/90 text-white font-semibold rounded-xl shadow-lg shadow-danger/25 hover:shadow-xl hover:from-danger/90 hover:to-danger transition-all mb-2" type="button" (click)="openVoidConfirm(detail)">
+            Batalkan Opname (Void)
+          </button>
+        }
+        <button class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeDetailDrawer()">Tutup</button>
+      </footer>
+    }
+  </aside>
+}
+
+<!-- Drawer: Form Stock Opname (Create/Edit Draft) -->
+@if (showFormDrawer()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeFormDrawer()" role="presentation"></div>
+  <aside class="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform transition-transform" [class.translate-x-0]="showFormDrawer()" [class.translate-x-full]="!showFormDrawer()" role="dialog">
+    <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+      <h3 class="text-lg font-bold text-primary-900">{{ isEditMode() ? 'Ubah Draft Stock Opname' : 'Buat Stock Opname Baru' }}</h3>
+      <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted" type="button" (click)="closeFormDrawer()">&times;</button>
+    </header>
+
+    <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 140px);">
+      <form #opForm="ngForm" (ngSubmit)="onSubmitOpname(opForm)" novalidate>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-text mb-1.5" for="op-date">{{ 'Tanggal Opname' | translate }} *</label>
+          <input id="op-date" type="date" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" name="opnameDate" [(ngModel)]="opnameDate" required />
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-text mb-1.5" for="op-notes">Catatan Tambahan</label>
+          <input id="op-notes" type="text" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" name="notes" [(ngModel)]="opnameNotes" placeholder="Misal: Penyesuaian stok triwulan..." />
+        </div>
+
+        <!-- Products selection lists -->
+        <div class="mt-4">
+          <h4 class="mb-2 text-sm font-semibold text-primary-900 font-sans">Pilih Barang untuk Dicocokkan</h4>
+          
+          <!-- Search & Filter Controls -->
+          <div class="flex gap-2 mb-3">
+            <input
+              type="text"
+              placeholder="Cari barang di opname..."
+              [(ngModel)]="opnameSearchQuery"
+              name="opnameSearchQuery"
+              class="flex-1 px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            />
+            <button
+              type="button"
+              (click)="toggleOpnameShowSelectedOnly()"
+              class="px-3 py-2 bg-surface border border-border rounded-xl text-xs font-semibold text-text hover:bg-surface-soft transition-colors select-none"
+            >
+              {{ showSelectedOnly ? 'Tampilkan Semua' : 'Terpilih (' + getSelectedOpnameCount() + ')' }}
+            </button>
+          </div>
+
+          <div class="overflow-auto border border-border rounded-xl" style="max-height: 320px;">
+            <table class="w-full">
+              <thead class="bg-surface-soft border-b border-border sticky top-0">
+                <tr>
+                  <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-text-muted" style="width: 40px">Pilih</th>
+                  <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-text-muted">Barang</th>
+                  <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-text-muted" style="width: 80px">Fisik</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (p of filteredOpnameProducts(); track p.productId) {
+                  <tr [class.bg-primary-50]="p.selected">
+                    <td class="px-3 py-2 text-center">
+                      <input type="checkbox" class="w-4 h-4 text-primary-600 rounded border-border focus:ring-primary-500" [(ngModel)]="p.selected" [name]="'sel-' + p.productId" aria-label="Pilih item ini" />
+                    </td>
+                    <td class="px-3 py-2">
+                      <p class="text-sm font-semibold text-text">{{ p.name }}</p>
+                      <p class="text-[10px] text-text-muted">Sistem: {{ p.systemStock }} item</p>
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        type="number"
+                        class="w-full px-2 py-1 text-center text-sm font-mono bg-surface border border-border rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-50 disabled:bg-surface-soft"
+                        [(ngModel)]="p.physicalStock"
+                        [name]="'phys-' + p.productId"
+                        [disabled]="!p.selected"
+                        min="0"
+                        aria-label="Stok fisik aktual"
+                      />
+                    </td>
+                  </tr>
+                }
+                @if (filteredOpnameProducts().length === 0) {
+                  <tr>
+                    <td colspan="3" class="px-3 py-6 text-center text-xs text-text-muted">
+                      Barang tidak ditemukan atau belum ada yang terpilih.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-6 mt-6">
+          <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeFormDrawer()" [disabled]="saving()">Batal</button>
+          <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all" type="submit" [disabled]="saving() || !isAnyProductSelected() || opForm.invalid">
+            {{ saving() ? 'Menyimpan...' : 'Simpan Draft' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </aside>
+}
+
+<!-- Dialog: Void Stock Opname -->
+@if (showVoidDialog()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeVoidDialog()" role="presentation"></div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <h3 class="text-lg font-bold text-primary-900 mb-2">Batalkan Stock Opname</h3>
+      <p class="text-sm text-text-muted mb-4">Anda akan membatalkan opname <strong>{{ voidTarget()?.opnameNumber }}</strong>. Stok produk akan dikembalikan seperti sebelum penyesuaian opname.</p>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="v-reason">Alasan Pembatalan <span class="text-danger">*</span></label>
+        <input id="v-reason" type="text" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" placeholder="Alasan pembatalan..." required [(ngModel)]="voidReason" />
+      </div>
+
+      <div class="flex gap-3">
+        <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" (click)="closeVoidDialog()" [disabled]="voidSaving()">Batal</button>
+        <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-danger to-danger/90 text-white font-semibold rounded-xl shadow-lg shadow-danger/25 hover:shadow-xl hover:from-danger/90 hover:to-danger transition-all" (click)="executeVoid()" [disabled]="!voidReason.trim() || voidSaving()">
+          Ya, Batalkan (Void)
+        </button>
+      </div>
+    </div>
+  </div>
+}

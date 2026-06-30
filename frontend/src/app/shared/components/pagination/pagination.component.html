@@ -1,0 +1,63 @@
+<!-- Pagination -->
+@if (totalItems > 0) {
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-3 bg-white border-t border-border rounded-b-xl">
+    <!-- Info -->
+    <p class="text-xs text-text-muted">
+      {{ 'Menampilkan' | translate }}
+      <span class="font-semibold text-primary-900">{{ (currentPage - 1) * pageSize + 1 }}</span>
+      {{ 'sampai' | translate }}
+      <span class="font-semibold text-primary-900">{{ min(currentPage * pageSize, totalItems) }}</span>
+      {{ 'dari' | translate }}
+      <span class="font-semibold text-primary-900">{{ totalItems }}</span>
+      {{ 'data' | translate }}
+    </p>
+
+    <!-- Page Numbers -->
+    <nav class="flex items-center gap-1" aria-label="Pagination">
+      <!-- Previous -->
+      <button
+        type="button"
+        (click)="onPageChange(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        [attr.aria-label]="'Sebelumnya' | translate"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <!-- Page Numbers -->
+      @for (page of getPages(); track page) {
+        @if (page !== -1) {
+          <button
+            type="button"
+            (click)="onPageChange(page)"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-colors"
+            [class.bg-primary-600]="page === currentPage"
+            [class.text-white]="page === currentPage"
+            [class.text-text]="page !== currentPage"
+            [class.hover:bg-surface-soft]="page !== currentPage"
+          >
+            {{ page }}
+          </button>
+        } @else {
+          <span class="w-8 h-8 flex items-center justify-center text-text-muted">...</span>
+        }
+      }
+
+      <!-- Next -->
+      <button
+        type="button"
+        (click)="onPageChange(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        [attr.aria-label]="'Selanjutnya' | translate"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </nav>
+  </div>
+}

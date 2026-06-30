@@ -1,0 +1,227 @@
+<section class="p-6">
+  <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-primary-900">{{ 'Supplier' | translate }}</h2>
+      <p class="text-sm text-text-muted mt-1">{{ 'Kelola daftar supplier tempat pembelian produk stok toko Anda.' | translate }}</p>
+    </div>
+    <button class="px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all inline-flex items-center gap-2" type="button" (click)="openCreateForm()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {{ 'Tambah Supplier' | translate }}
+    </button>
+  </header>
+
+  <!-- Filters -->
+  <app-filter-bar>
+    <div class="relative">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+        type="search"
+        [placeholder]="'Cari nama supplier...' | translate"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onFilterChange()"
+        aria-label="Cari supplier"
+      />
+    </div>
+
+    <select
+      class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+      [(ngModel)]="filterActive"
+      (ngModelChange)="onFilterChange()"
+      aria-label="Filter Status"
+    >
+      <option value="">{{ 'Semua Status' | translate }}</option>
+      <option value="true">{{ 'Aktif' | translate }}</option>
+      <option value="false">{{ 'Nonaktif' | translate }}</option>
+    </select>
+
+    <button *ngIf="searchQuery || filterActive" class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="clearFilters()">
+      {{ 'Hapus filter' | translate }}
+    </button>
+    <span class="text-sm text-text-muted">{{ totalItems() }} supplier</span>
+  </app-filter-bar>
+
+  <!-- Suppliers Table -->
+  <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+    @if (loading()) {
+      <div class="flex items-center justify-center py-12">
+        <app-loading-state [label]="'Memuat supplier...' | translate" />
+      </div>
+    }
+
+    @if (!loading() && error()) {
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <p class="text-danger mb-3">{{ error() }}</p>
+        <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="loadSuppliers()">
+          {{ 'Coba Lagi' | translate }}
+        </button>
+      </div>
+    }
+
+    @if (!loading() && !error() && suppliers().length === 0) {
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Belum Ada Supplier' | translate }}</h3>
+        <p class="text-sm text-text-muted mb-3">{{ 'Mulai dengan menambahkan supplier pertama Anda.' | translate }}</p>
+        <button class="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all text-sm inline-flex items-center gap-2" type="button" (click)="openCreateForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {{ 'Tambah Supplier' | translate }}
+        </button>
+      </div>
+    }
+
+    @if (!loading() && !error() && suppliers().length > 0) {
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-surface-soft border-b border-border">
+            <tr>
+              <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 60px">{{ 'No' | translate }}</th>
+              <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">Nama Supplier</th>
+              <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 120px">{{ 'Status' | translate }}</th>
+              <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 180px">{{ 'Aksi' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (s of suppliers(); track s.id; let idx = $index) {
+              <tr class="hover:bg-surface-soft/50 transition-colors">
+                <td class="px-4 py-3 text-center text-sm text-text-muted">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-text">{{ s.name }}</td>
+                <td class="px-4 py-3 text-center">
+                  <app-badge [variant]="s.isActive !== false ? 'success' : 'danger'">
+                    {{ (s.isActive !== false ? 'Aktif' : 'Nonaktif') | translate }}
+                  </app-badge>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <div class="flex items-center justify-center gap-1">
+                    <button class="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" type="button" (click)="openEditForm(s)">
+                      {{ 'Edit' | translate }}
+                    </button>
+                    <button class="px-3 py-1 text-sm text-danger hover:bg-danger-soft rounded-lg transition-colors" type="button" (click)="openDeleteConfirm(s)">
+                      {{ 'Hapus' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <app-pagination
+          [currentPage]="currentPage"
+          [totalPages]="totalPages()"
+          [totalItems]="totalItems()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        />
+      </div>
+    }
+  </article>
+</section>
+
+<!-- Drawer Form (Create/Edit) -->
+<div class="fixed inset-0 bg-black/30 z-40 transition-opacity" *ngIf="showFormDrawer()" (click)="closeFormDrawer()" role="presentation"></div>
+<aside class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform" [class.translate-x-0]="showFormDrawer()" [class.translate-x-full]="!showFormDrawer()" *ngIf="showFormDrawer()" role="dialog">
+  <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+    <h3 class="text-lg font-bold text-primary-900">{{ (isEditMode() ? 'Edit Supplier' : 'Tambah Supplier') | translate }}</h3>
+    <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted" type="button" aria-label="Tutup panel" (click)="closeFormDrawer()">&times;</button>
+  </header>
+
+  <div class="p-6">
+    <form #sForm="ngForm" (ngSubmit)="onSubmitForm(sForm)" novalidate>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="s-name">Nama Supplier *</label>
+        <input
+          id="s-name"
+          type="text"
+          class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [class.border-danger]="sForm.submitted && nameInput.invalid"
+          name="name"
+          [(ngModel)]="formModel.name"
+          required
+          #nameInput="ngModel"
+          placeholder="Contoh: PT. Sumber Makmur"
+        />
+        <span class="text-xs text-danger mt-1 block" *ngIf="sForm.submitted && nameInput.invalid">
+          {{ 'Nama supplier wajib diisi.' | translate }}
+        </span>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="s-phone">{{ 'Nomor Telepon' | translate }}</label>
+        <input
+          id="s-phone"
+          type="tel"
+          class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          name="phone"
+          [(ngModel)]="formModel.phone"
+          [placeholder]="'Contoh: 08123456789' | translate"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="s-address">{{ 'Alamat' | translate }}</label>
+        <textarea
+          id="s-address"
+          class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 resize-none"
+          rows="2"
+          name="address"
+          [(ngModel)]="formModel.address"
+          [placeholder]="'Alamat Lengkap' | translate"
+        ></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="s-notes">{{ 'Catatan' | translate }}</label>
+        <textarea
+          id="s-notes"
+          class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 resize-none"
+          rows="2"
+          name="notes"
+          [(ngModel)]="formModel.notes"
+          [placeholder]="'Keterangan singkat (opsional)' | translate"
+        ></textarea>
+      </div>
+
+      <div class="mb-6" *ngIf="isEditMode()">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            class="w-4 h-4 text-primary-600 rounded border-border focus:ring-primary-500"
+            name="isActive"
+            [(ngModel)]="formModel.isActive"
+          />
+          <span class="text-sm text-text">{{ 'Aktif' | translate }}</span>
+        </label>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeFormDrawer()" [disabled]="saving()">
+          {{ 'Batal' | translate }}
+        </button>
+        <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all" type="submit" [disabled]="saving() || sForm.invalid">
+          {{ (saving() ? 'Menyimpan...' : 'Simpan') | translate }}
+        </button>
+      </div>
+    </form>
+  </div>
+</aside>
+
+<!-- Delete Confirm Dialog -->
+<div class="fixed inset-0 bg-black/30 z-40 transition-opacity" *ngIf="showDeleteDialog()" (click)="closeDeleteDialog()" role="presentation"></div>
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4" *ngIf="showDeleteDialog()" role="dialog">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <h3 class="text-lg font-bold text-primary-900 mb-2">{{ 'Hapus Supplier' | translate }}</h3>
+    <p class="text-sm text-text-muted mb-4">
+      {{ 'Apakah Anda yakin ingin menghapus supplier' | translate }} <strong>{{ deleteTarget()?.name }}</strong>?
+    </p>
+
+    <div class="flex gap-3">
+      <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" (click)="closeDeleteDialog()" [disabled]="deleting()">
+        {{ 'Batal' | translate }}
+      </button>
+      <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-danger to-danger/90 text-white font-semibold rounded-xl shadow-lg shadow-danger/25 hover:shadow-xl hover:from-danger/90 hover:to-danger transition-all" (click)="executeDelete()" [disabled]="deleting()">
+        <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" *ngIf="deleting()"></span>
+        {{ (deleting() ? 'Hapus...' : 'Ya, Hapus') | translate }}
+      </button>
+    </div>
+  </div>
+</div>

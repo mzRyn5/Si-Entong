@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: sientong-postgres
+    environment:
+      POSTGRES_DB: store_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+volumes:
+  postgres_data:

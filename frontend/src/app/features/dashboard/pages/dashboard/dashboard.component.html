@@ -1,0 +1,986 @@
+<section class="p-6 space-y-8 pb-12">
+  <!-- Welcome Header -->
+  <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 p-6 rounded-2xl text-white shadow-lg shadow-primary-900/10 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-36 h-36 bg-white/5 rounded-full blur-xl"></div>
+    <div class="flex items-center gap-4 relative z-10">
+      <img src="assets/dashboard_welcome.jpg" alt="Welcome Avatar" class="w-14 h-14 rounded-full border-2 border-white/20 object-cover shadow-md" />
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-display text-2xl font-extrabold tracking-tight text-white">{{ 'Halo,' | translate }} <span class="text-amber-300">{{ activeUserName() }}</span>!</h1>
+          @if (isOffline()) {
+            <span class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-white/20 text-white border border-white/10 animate-pulse">
+              {{ 'Mode Demo' | translate }}
+            </span>
+          }
+        </div>
+        <p class="text-primary-100/80 text-xs mt-1 font-medium">
+          {{ (isSysAdmin() ? 'Pantau performa dan pendaftaran toko retail pada platform.' : 'Ringkasan performa toko kelontong Anda hari ini.') | translate }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Top Filters & CTA -->
+    <div class="flex flex-wrap items-center gap-4 relative z-10" *ngIf="!isSysAdmin()">
+      <!-- Date Picker Widget -->
+      <div class="flex items-center gap-2 bg-white border border-border px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md hover:border-primary-300 transition-all text-text">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <input type="date" [(ngModel)]="selectedSummaryDate" (change)="onDateChange()" class="border-0 bg-transparent text-sm font-bold text-primary-900 cursor-pointer focus:ring-2 focus:ring-primary-500 rounded-lg focus:outline-none px-2 py-0.5" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center py-20 bg-white border border-border rounded-2xl shadow-sm text-text-muted text-center">
+      <svg class="animate-spin w-10 h-10 mb-4 text-primary-600" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      <p class="text-sm font-bold tracking-wide uppercase text-primary-900">{{ 'Memuat data rangkuman...' | translate }}</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error() && !loading()) {
+    <div class="flex flex-col items-center justify-center py-12 text-center bg-white border border-border rounded-2xl shadow-sm max-w-md mx-auto">
+      <img src="assets/offline_state.jpg" alt="Offline / Error" class="w-32 h-32 object-cover rounded-full shadow-md border border-border mb-4" />
+      <h3 class="text-lg font-bold text-primary-900 mb-1">{{ 'Gagal Memuat Data' | translate }}</h3>
+      <p class="text-sm text-text-muted mb-4 max-w-xs mx-auto">{{ error() }}</p>
+      <button type="button" (click)="loadSummary()" class="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all text-sm">
+        {{ 'Coba Lagi' | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Dashboard Content -->
+  @if (!loading() && !error()) {
+
+    <!-- Role: SYSTEM ADMINISTRATOR -->
+    @if (isSysAdmin() && platformStats(); as stats) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Toko -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Total Toko Terdaftar' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-primary-900 mt-2 tracking-tight">
+                {{ stats.totalStores }} <span class="text-xs font-semibold text-text-soft">{{ 'Toko' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-xl">storefront</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Toko Aktif / Nonaktif:' | translate }}</span>
+            <span class="text-primary-800 font-extrabold">{{ stats.activeStores }} / {{ stats.totalStores - stats.activeStores }}</span>
+          </div>
+        </article>
+
+        <!-- Total Users -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Akun Owner Terdaftar' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-success mt-2 tracking-tight">
+                {{ stats.totalUsers }} <span class="text-xs font-semibold text-text-soft">{{ 'User' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-success-soft text-success flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-xl">groups</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Estimasi Owner / Toko:' | translate }}</span>
+            <span class="text-success font-extrabold">{{ '1 Owner' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Global Transaction Volume -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Volume Transaksi Global' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-amber-600 mt-2 tracking-tight">
+                {{ stats.platformTransactionVolume | currencyIdr }}
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-xl">payments</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Bulan Berjalan:' | translate }}</span>
+            <span class="text-amber-800 font-extrabold">{{ 'Juni 2026' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Active Stores Rate -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Rasio Keaktifan Toko' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-info mt-2 tracking-tight">
+                {{ stats.activeRate }}
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-info-soft text-info flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-xl">storefront</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Toko Aktif:' | translate }}</span>
+            <span class="text-info font-extrabold">{{ stats.activeStores }} / {{ stats.totalStores }}</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Chart and Recent Store Registrations -->
+      <div class="sysadmin-insight-grid grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6 items-stretch">
+        <!-- Graph Card -->
+        <div data-sysadmin-panel="platform-chart" class="xl:col-span-2 bg-white border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between min-w-0">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4 mb-4">
+            <div>
+              <h2 class="font-sans text-lg font-extrabold text-primary-900">{{ 'Analisis Metrik Platform' | translate }}</h2>
+              <p class="text-xs text-text-muted font-medium mt-0.5">{{ 'Grafik pertumbuhan toko, pengguna, dan rasio keaktifan toko.' | translate }}</p>
+            </div>
+            
+            <!-- Metric selector pills -->
+            <div class="flex bg-bg p-1 rounded-xl border border-border self-start sm:self-center">
+              <button type="button" (click)="onSysAdminMetricChange('stores')"
+                      [class]="sysAdminChartMetric() === 'stores' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ 'Toko' | translate }}
+              </button>
+              <button type="button" (click)="onSysAdminMetricChange('users')"
+                      [class]="sysAdminChartMetric() === 'users' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ 'Pengguna' | translate }}
+              </button>
+              <button type="button" (click)="onSysAdminMetricChange('activeRate')"
+                      [class]="sysAdminChartMetric() === 'activeRate' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ 'Keaktifan Toko' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom SVG Chart Container -->
+          <div class="relative w-full h-[250px] min-h-[220px]">
+            @if (chartLoading()) {
+              <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/70 z-10">
+                <svg class="animate-spin w-8 h-8 text-primary-600 mb-2" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span class="text-xs font-bold text-primary-900 tracking-wider">{{ 'MEMUAT GRAFIK...' | translate }}</span>
+              </div>
+            }
+            
+            <div class="w-full h-full">
+              <svg class="w-full h-full overflow-visible" viewBox="0 0 600 240" 
+                   (mousemove)="onMouseMove($event)" 
+                   (mouseleave)="onMouseLeave()">
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--color-primary-500)" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="var(--color-primary-500)" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="areaGradUp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#22c55e" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#22c55e" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="areaGradDown" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="var(--color-primary-700)" />
+                    <stop offset="50%" stop-color="var(--color-primary-600)" />
+                    <stop offset="100%" stop-color="var(--color-primary-400)" />
+                  </linearGradient>
+                  <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="var(--color-primary-900)" flood-opacity="0.12" />
+                  </filter>
+                  <filter id="shadowUp" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#22c55e" flood-opacity="0.2" />
+                  </filter>
+                  <filter id="shadowDown" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#ef4444" flood-opacity="0.2" />
+                  </filter>
+                </defs>
+
+                <!-- Horizontal Grid Lines & Y-axis labels -->
+                <line x1="70" y1="20" x2="70" y2="200" stroke="var(--color-border-strong)" stroke-width="1.5" />
+                @for (g of chartGridY(); track g.y) {
+                  <line x1="70" [attr.y1]="g.y" x2="580" [attr.y2]="g.y" 
+                        stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+                  <text data-chart-axis="sysadmin-y-label" x="60" [attr.y]="g.y + 4" text-anchor="end" class="text-[10px] font-mono font-semibold text-text-soft">{{ g.label }}</text>
+                }
+
+                <!-- Colored Segments -->
+                @for (seg of chartSegments(); track $index) {
+                  <path [attr.d]="seg.areaPath" 
+                        [attr.fill]="seg.direction === 'up' ? 'url(#areaGradUp)' : seg.direction === 'down' ? 'url(#areaGradDown)' : 'url(#areaGrad)'" />
+                  <path [attr.d]="seg.linePath" fill="none" 
+                        [attr.stroke]="seg.direction === 'up' ? '#22c55e' : seg.direction === 'down' ? '#ef4444' : 'var(--color-primary-600)'"
+                        stroke-width="3" stroke-linecap="round"
+                        [attr.filter]="seg.direction === 'up' ? 'url(#shadowUp)' : seg.direction === 'down' ? 'url(#shadowDown)' : 'url(#shadow)'" />
+                }
+
+                <!-- X-Axis line -->
+                <line x1="70" y1="200" x2="580" y2="200" stroke="var(--color-border-strong)" stroke-width="1.5" />
+
+                <!-- X-Axis Labels -->
+                @for (g of chartGridX(); track g.x) {
+                  <text [attr.x]="g.x" y="218" class="text-[9px] font-semibold text-text-soft text-center" text-anchor="middle">{{ g.label }}</text>
+                }
+
+                <!-- Tooltip line tracker -->
+                @if (tooltipPoint()) {
+                  <line [attr.x1]="tooltipX()" y1="20" [attr.x2]="tooltipX()" y2="200" 
+                        [attr.stroke]="tooltipPoint()!.direction === 'up' ? '#22c55e80' : tooltipPoint()!.direction === 'down' ? '#ef444480' : 'var(--color-primary-400)'"
+                        stroke-width="1" stroke-dasharray="2 2" />
+                  <circle [attr.cx]="tooltipX()" [attr.cy]="tooltipY() + 12" r="5" 
+                          [attr.fill]="tooltipPoint()!.direction === 'up' ? '#22c55e' : tooltipPoint()!.direction === 'down' ? '#ef4444' : 'var(--color-primary-600)'"
+                          stroke="white" stroke-width="2" class="shadow-sm" />
+                }
+              </svg>
+
+              <!-- Floating Tooltip Box -->
+              @if (tooltipPoint(); as p) {
+                <div class="absolute bg-primary-900 text-white px-3 py-2 rounded-xl shadow-xl text-left border border-white/10 pointer-events-none z-20 transition-all duration-100"
+                     [style.left.px]="p.x - 60"
+                     [style.top.px]="p.y - 45">
+                  <span class="block text-[8px] font-bold text-primary-200 uppercase tracking-wider">{{ p.formattedDate }}</span>
+                  <span class="block text-xs font-mono font-bold mt-0.5">
+                    {{ sysAdminChartMetric() === 'activeRate' ? p.amount.toFixed(1) + '%' : p.amount + ' ' + (sysAdminChartMetric() === 'stores' ? ('Toko' | translate) : ('User' | translate)) }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Stores Registrations -->
+        <div data-sysadmin-panel="latest-stores" class="bg-white border border-border rounded-2xl p-6 shadow-sm flex flex-col min-w-0">
+          <div class="flex justify-between items-start gap-4 border-b border-border pb-4 mb-2">
+            <div>
+              <h2 class="font-sans text-lg font-extrabold text-primary-900">{{ 'Toko Baru' | translate }}</h2>
+              <p class="text-xs text-text-muted font-medium mt-0.5">{{ '3 pendaftaran retail terbaru.' | translate }}</p>
+            </div>
+            <a routerLink="/sysadmin/stores" class="text-xs font-bold text-primary-600 hover:underline whitespace-nowrap mt-1">{{ 'Kelola' | translate }} &rarr;</a>
+          </div>
+
+          <div class="divide-y divide-border">
+            @for (reg of stats.recentRegistrations; track reg.name) {
+              <div class="py-4 first:pt-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-9 h-9 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    <span class="material-symbols-rounded text-base">storefront</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-3">
+                      <span class="font-bold text-text text-sm leading-5 break-words">{{ reg.name }}</span>
+                      <app-badge [variant]="reg.isActive ? 'success' : 'danger'">
+                        {{ reg.isActive ? ('Aktif' | translate) : ('Ditangguhkan' | translate) }}
+                      </app-badge>
+                    </div>
+                    <p class="text-xs text-text-muted font-semibold mt-1 break-words">{{ reg.owner }}</p>
+                    <p class="text-[11px] text-text-soft font-medium mt-1">{{ formatDate(reg.date) }}</p>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Store Owner & Clerk Dashboards -->
+    @if (!isSysAdmin() && summary(); as data) {
+      
+      <!-- METRIC CARDS GRID -->
+      <!-- Role: OWNER (6 Cards) -->
+      @if (isOwner()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Sales Card -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Penjualan Hari Ini' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-primary-900 mt-2 tracking-tight">
+                {{ data.totalSales | currencyIdr }}
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('sales').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('sales').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('sales').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  {{ getComparison('sales').percentage }}
+                </span>
+                <span class="text-text-soft">{{ getComparison('sales').label | translate }}</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Volume Transaksi:' | translate }}</span>
+            <span class="text-primary-800 font-extrabold">{{ data.todayTransactionCount || 0 }} {{ 'nota' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Gross Profit Card -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Estimasi Laba Kotor' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-success mt-2 tracking-tight">
+                {{ data.grossProfit | currencyIdr }}
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('profit').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('profit').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('profit').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  {{ getComparison('profit').percentage }}
+                </span>
+                <span class="text-text-soft">{{ getComparison('profit').label | translate }}</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-success-soft flex items-center justify-center text-success">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Marjin Laba:' | translate }}</span>
+            <span class="text-success font-extrabold" *ngIf="data.totalSales > 0">
+              {{ (data.grossProfit / data.totalSales * 100) | number:'1.0-1' }}%
+            </span>
+            <span class="text-success font-extrabold" *ngIf="data.totalSales === 0">0%</span>
+          </div>
+        </article>
+
+        <!-- Expenses Card -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Pengeluaran Operasional' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-primary-900 mt-2 tracking-tight">
+                {{ (data.expenses || 0) | currencyIdr }}
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('expenses').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('expenses').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('expenses').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  {{ getComparison('expenses').percentage }}
+                </span>
+                <span class="text-text-soft">{{ getComparison('expenses').label | translate }}</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-warning-soft flex items-center justify-center text-warning">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Pembelian Inventori:' | translate }}</span>
+            <span class="text-primary-800 font-extrabold">{{ (data.totalPurchases || 0) | currencyIdr }}</span>
+          </div>
+        </article>
+
+        <!-- Stock Warning: Low Stock -->
+        <article class="relative bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group"
+          [class.border-warning-soft]="data.lowStockCount > 0"
+          [class.border-border]="data.lowStockCount === 0">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Stok Menipis' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold mt-2 tracking-tight"
+                [class.text-warning]="data.lowStockCount > 0"
+                [class.text-primary-900]="data.lowStockCount === 0">
+                {{ data.lowStockCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Produk' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+              [class.bg-warning-soft]="data.lowStockCount > 0"
+              [class.text-warning]="data.lowStockCount > 0"
+              [class.bg-surface-soft]="data.lowStockCount === 0"
+              [class.text-text-soft]="data.lowStockCount === 0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Perlu Segera Restock' | translate }}</span>
+            <a routerLink="/inventory" class="text-primary-600 font-extrabold hover:underline">{{ 'Periksa Detail' | translate }} &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Stock Warning: Out of Stock -->
+        <article class="relative bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group"
+          [class.border-danger-soft]="data.outOfStockCount > 0"
+          [class.border-border]="data.outOfStockCount === 0">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Stok Habis' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold mt-2 tracking-tight"
+                [class.text-danger]="data.outOfStockCount > 0"
+                [class.text-primary-900]="data.outOfStockCount === 0">
+                {{ data.outOfStockCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Barang' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+              [class.bg-danger-soft]="data.outOfStockCount > 0"
+              [class.text-danger]="data.outOfStockCount > 0"
+              [class.bg-surface-soft]="data.outOfStockCount === 0"
+              [class.text-text-soft]="data.outOfStockCount === 0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Stok 0 - Tidak Bisa Dijual' | translate }}</span>
+            <a routerLink="/inventory" class="text-danger font-extrabold hover:underline">{{ 'Kelola' | translate }} &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Transaction Counter -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Transaksi Selesai' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-info mt-2 tracking-tight">
+                {{ data.todayTransactionCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Nota' | translate }}</span>
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('transactions').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('transactions').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('transactions').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  {{ getComparison('transactions').percentage }}
+                </span>
+                <span class="text-text-soft">{{ getComparison('transactions').label | translate }}</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-info-soft flex items-center justify-center text-info">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Kinerja Kasir Aktif' | translate }}</span>
+            <span class="text-info font-extrabold">{{ 'Stabil' | translate }}</span>
+          </div>
+        </article>
+      </div>
+    }
+
+    <!-- Role: ADMIN / PENJAGA (4 Cards - No financial detail) -->
+    @if (!isOwner()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Sales Card -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Omset Shift Hari Ini' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-primary-900 mt-2 tracking-tight">
+                {{ data.totalSales | currencyIdr }}
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('sales_shift').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('sales_shift').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('sales_shift').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  {{ getComparison('sales_shift').percentage }}
+                </span>
+                <span class="text-text-soft">{{ getComparison('sales_shift').label | translate }}</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Jumlah penjualan shift Anda hari ini' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Transaction Count Card -->
+        <article class="relative bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Nota Tercetak' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold text-info mt-2 tracking-tight">
+                {{ data.todayTransactionCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Nota' | translate }}</span>
+              </h3>
+              <!-- Comparison Info -->
+              <div class="flex items-center gap-1 mt-1 text-xs select-none">
+                <span [class]="getComparison('transactions_shift').isPositive ? 'text-success font-bold flex items-center' : 'text-danger font-bold flex items-center'">
+                  <svg *ngIf="getComparison('transactions_shift').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  <svg *ngIf="!getComparison('transactions_shift').isPositive" class="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  @if (getComparison('transactions_shift').percentage === '0') {
+                    {{ 'Tetap vs kemarin' | translate }}
+                  } @else {
+                    {{ getComparison('transactions_shift').percentage }} {{ getComparison('transactions_shift').label | translate }}
+                  }
+                </span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-info-soft flex items-center justify-center text-info">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span>{{ 'Transaksi terlayani harian' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Low Stock Alert Card -->
+        <article class="relative bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group"
+          [class.border-warning-soft]="data.lowStockCount > 0"
+          [class.border-border]="data.lowStockCount === 0">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Stok Menipis' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold mt-2 tracking-tight"
+                [class.text-warning]="data.lowStockCount > 0"
+                [class.text-primary-900]="data.lowStockCount === 0">
+                {{ data.lowStockCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Item' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+              [class.bg-warning-soft]="data.lowStockCount > 0"
+              [class.text-warning]="data.lowStockCount > 0"
+              [class.bg-surface-soft]="data.lowStockCount === 0"
+              [class.text-text-soft]="data.lowStockCount === 0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span class="text-warning font-bold">{{ 'Harap lapor ke pemilik toko' | translate }}</span>
+          </div>
+        </article>
+
+        <!-- Out of Stock Card -->
+        <article class="relative bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all overflow-hidden group"
+          [class.border-danger-soft]="data.outOfStockCount > 0"
+          [class.border-border]="data.outOfStockCount === 0">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-text-muted select-none">{{ 'Stok Habis (0)' | translate }}</p>
+              <h3 class="font-sans text-2xl font-extrabold mt-2 tracking-tight"
+                [class.text-danger]="data.outOfStockCount > 0"
+                [class.text-primary-900]="data.outOfStockCount === 0">
+                {{ data.outOfStockCount || 0 }} <span class="text-xs font-sans font-bold text-text-soft">{{ 'Item' | translate }}</span>
+              </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+              [class.bg-danger-soft]="data.outOfStockCount > 0"
+              [class.text-danger]="data.outOfStockCount > 0"
+              [class.bg-surface-soft]="data.outOfStockCount === 0"
+              [class.text-text-soft]="data.outOfStockCount === 0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-border flex justify-between items-center text-xs font-semibold text-text-muted">
+            <span class="text-danger font-bold">{{ 'Barang tidak bisa discan' | translate }}</span>
+          </div>
+        </article>
+      </div>
+    }
+
+    <!-- CHART & PAYMENT METHODS SIDE-BY-SIDE SECTION -->
+    @if (isOwner()) {
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Graph Card (2/3 width) -->
+        <div class="lg:col-span-2 bg-white border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4 mb-4">
+            <div>
+              <h2 class="font-sans text-lg font-extrabold text-primary-900">{{ 'Performa Omset Penjualan' | translate }}</h2>
+              <p class="text-xs text-text-muted font-medium mt-0.5">{{ 'Grafik dinamik analisis nilai transaksi penjualan.' | translate }}</p>
+            </div>
+            
+            <!-- Filter range selector pills -->
+            <div class="flex bg-bg p-1 rounded-xl border border-border self-start sm:self-center">
+              <button type="button" (click)="onChartRangeChange('7days')"
+                      [class]="chartRange() === '7days' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ '7 Hari' | translate }}
+              </button>
+              <button type="button" (click)="onChartRangeChange('30days')"
+                      [class]="chartRange() === '30days' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ '30 Hari' | translate }}
+              </button>
+              <button type="button" (click)="onChartRangeChange('thisMonth')"
+                      [class]="chartRange() === 'thisMonth' 
+                        ? 'px-3 py-1.5 bg-white text-primary-800 font-bold text-xs rounded-lg shadow-sm border border-border/50' 
+                        : 'px-3 py-1.5 text-text-muted font-bold text-xs rounded-lg hover:text-primary-700 transition-all'">
+                {{ 'Bulan Ini' | translate }}
+              </button>
+            </div>
+          </div>
+  
+          <!-- Custom SVG Chart Container -->
+          <div class="relative w-full h-[250px] min-h-[220px]">
+            @if (chartLoading()) {
+              <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/70 z-10">
+                <svg class="animate-spin w-8 h-8 text-primary-600 mb-2" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span class="text-xs font-bold text-primary-900 tracking-wider">{{ 'MEMUAT GRAFIK...' | translate }}</span>
+              </div>
+            }
+            
+            <div class="w-full h-full">
+              <svg class="w-full h-full overflow-visible" viewBox="0 0 600 240" 
+                   (mousemove)="onMouseMove($event)" 
+                   (mouseleave)="onMouseLeave()">
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--color-primary-500)" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="var(--color-primary-500)" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="areaGradUp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#22c55e" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#22c55e" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="areaGradDown" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="var(--color-primary-700)" />
+                    <stop offset="50%" stop-color="var(--color-primary-600)" />
+                    <stop offset="100%" stop-color="var(--color-primary-400)" />
+                  </linearGradient>
+                  <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="var(--color-primary-900)" flood-opacity="0.12" />
+                  </filter>
+                  <filter id="shadowUp" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#22c55e" flood-opacity="0.2" />
+                  </filter>
+                  <filter id="shadowDown" x="-5%" y="-5%" width="110%" height="120%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#ef4444" flood-opacity="0.2" />
+                  </filter>
+                </defs>
+  
+                <!-- Horizontal Grid Lines & Y-axis labels -->
+                @for (g of chartGridY(); track g.y) {
+                  <line x1="70" [attr.y1]="g.y" x2="580" [attr.y2]="g.y" 
+                        stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+                  <text x="60" [attr.y]="g.y + 4" class="text-[10px] font-mono font-semibold text-text-soft text-right">{{ g.label }}</text>
+                }
+  
+                <!-- Colored Segments (hijau=naik, merah=turun) -->
+                @for (seg of chartSegments(); track $index) {
+                  <path [attr.d]="seg.areaPath" 
+                        [attr.fill]="seg.direction === 'up' ? 'url(#areaGradUp)' : seg.direction === 'down' ? 'url(#areaGradDown)' : 'url(#areaGrad)'" />
+                  <path [attr.d]="seg.linePath" fill="none" 
+                        [attr.stroke]="seg.direction === 'up' ? '#22c55e' : seg.direction === 'down' ? '#ef4444' : 'var(--color-primary-600)'"
+                        stroke-width="3" stroke-linecap="round"
+                        [attr.filter]="seg.direction === 'up' ? 'url(#shadowUp)' : seg.direction === 'down' ? 'url(#shadowDown)' : 'url(#shadow)'" />
+                }
+  
+                <!-- X-Axis line -->
+                <line x1="70" y1="200" x2="580" y2="200" stroke="var(--color-border-strong)" stroke-width="1.5" />
+  
+                <!-- X-Axis Labels -->
+                @for (g of chartGridX(); track g.x) {
+                  <text [attr.x]="g.x" y="218" class="text-[9px] font-semibold text-text-soft text-center" text-anchor="middle">{{ g.label }}</text>
+                }
+  
+                <!-- Tooltip line tracker -->
+                @if (tooltipPoint()) {
+                  <line [attr.x1]="tooltipX()" y1="20" [attr.x2]="tooltipX()" y2="200" 
+                        [attr.stroke]="tooltipPoint()!.direction === 'up' ? '#22c55e80' : tooltipPoint()!.direction === 'down' ? '#ef444480' : 'var(--color-primary-400)'"
+                        stroke-width="1" stroke-dasharray="2 2" />
+                  <circle [attr.cx]="tooltipX()" [attr.cy]="tooltipY() + 12" r="5" 
+                          [attr.fill]="tooltipPoint()!.direction === 'up' ? '#22c55e' : tooltipPoint()!.direction === 'down' ? '#ef4444' : 'var(--color-primary-600)'"
+                          stroke="white" stroke-width="2" class="shadow-sm" />
+                }
+              </svg>
+  
+              <!-- Floating Tooltip Box -->
+              @if (tooltipPoint(); as p) {
+                <div class="absolute bg-primary-900 text-white px-3 py-2 rounded-xl shadow-xl text-left border border-white/10 pointer-events-none z-20 transition-all duration-100"
+                     [style.left.px]="p.x - 60"
+                     [style.top.px]="p.y - 45">
+                  <span class="block text-[8px] font-bold text-primary-200 uppercase tracking-wider">{{ p.formattedDate }}</span>
+                  <span class="block text-xs font-mono font-bold mt-0.5">{{ p.amount | currencyIdr }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        
+        <!-- Payment Methods share Card (1/3 width) -->
+        <div class="bg-white border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="border-b border-border pb-4 mb-4">
+              <h2 class="font-sans text-lg font-extrabold text-primary-900">{{ 'Metode Pembayaran' | translate }}</h2>
+              <p class="text-xs text-text-muted font-medium mt-0.5">{{ 'Proporsi transaksi kasir hari ini.' | translate }}</p>
+            </div>
+            
+            <div class="space-y-4">
+              <!-- Cash -->
+              <div>
+                <div class="flex justify-between text-xs font-bold mb-1.5">
+                  <span class="text-primary-900 flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded bg-primary-600"></span>
+                    {{ 'Tunai (Cash)' | translate }}
+                  </span>
+                  <span class="text-text-muted">{{ (data.paymentMethods?.cash || 0) | currencyIdr }}</span>
+                </div>
+                <div class="w-full bg-bg h-2 rounded-full overflow-hidden">
+                  <div class="bg-primary-600 h-full rounded-full transition-all duration-500"
+                    [style.width.%]="data.totalSales > 0 ? ((data.paymentMethods?.cash || 0) / data.totalSales * 100) : 0">
+                  </div>
+                </div>
+              </div>
+  
+              <!-- Bank Transfer -->
+              <div>
+                <div class="flex justify-between text-xs font-bold mb-1.5">
+                  <span class="text-primary-900 flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded bg-info"></span>
+                    {{ 'Transfer Bank' | translate }}
+                  </span>
+                  <span class="text-text-muted">{{ (data.paymentMethods?.transfer || 0) | currencyIdr }}</span>
+                </div>
+                <div class="w-full bg-bg h-2 rounded-full overflow-hidden">
+                  <div class="bg-info h-full rounded-full transition-all duration-500"
+                    [style.width.%]="data.totalSales > 0 ? ((data.paymentMethods?.transfer || 0) / data.totalSales * 100) : 0">
+                  </div>
+                </div>
+              </div>
+  
+              <!-- QRIS -->
+              <div>
+                <div class="flex justify-between text-xs font-bold mb-1.5">
+                  <span class="text-primary-900 flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded bg-success"></span>
+                    {{ 'QRIS Digital' | translate }}
+                  </span>
+                  <span class="text-text-muted">{{ (data.paymentMethods?.qris || 0) | currencyIdr }}</span>
+                </div>
+                <div class="w-full bg-bg h-2 rounded-full overflow-hidden">
+                  <div class="bg-success h-full rounded-full transition-all duration-500"
+                    [style.width.%]="data.totalSales > 0 ? ((data.paymentMethods?.qris || 0) / data.totalSales * 100) : 0">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+          <div class="mt-6 pt-4 border-t border-border bg-surface-soft p-3 rounded-xl border">
+            <p class="text-[11px] text-text-muted leading-relaxed font-medium">
+              💡 {{ 'Metode pembayaran' | translate }} <strong class="text-primary-800">{{ 'Tunai' | translate }}</strong> {{ 'disarankan selalu diverifikasi jumlah laci fisiknya pada saat penutupan shift kasir.' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- RECENT ACTIVITIES & QUICK LINKS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Recent Activities Feed (2/3 width) -->
+      @if (isOwner()) {
+        <div class="md:col-span-2 bg-white border border-border rounded-2xl p-6 shadow-sm">
+          <h2 class="font-sans text-lg font-extrabold text-primary-900 mb-4">{{ 'Aktivitas Terakhir' | translate }}</h2>
+          
+          @if (data.recentActivities && data.recentActivities.length > 0) {
+            <div class="flow-root">
+              <ul class="-mb-8">
+                @for (act of data.recentActivities; track act.timestamp; let last = $last) {
+                  <li>
+                    <div class="relative pb-8">
+                      @if (!last) {
+                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-border" aria-hidden="true"></span>
+                      }
+                      <div class="relative flex space-x-3">
+                        <div>
+                          <span class="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 ring-8 ring-white">
+                            @if (act.type === 'Penjualan') {
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                              </svg>
+                            } @else if (act.type === 'Pembelian') {
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                              </svg>
+                            } @else {
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                              </svg>
+                            }
+                          </span>
+                        </div>
+                        <div class="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                          <div>
+                            <p class="text-xs font-bold text-primary-900">{{ act.description }}</p>
+                            <p class="text-[10px] text-text-soft font-semibold mt-0.5" *ngIf="act.userName">
+                              <span class="inline-flex items-center gap-1">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline text-text-soft/70">
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                                </svg>
+                                {{ act.userName }}
+                              </span>
+                            </p>
+                          </div>
+                          <div class="text-right text-[10px] whitespace-nowrap text-text-soft font-bold">
+                            <time [dateTime]="act.timestamp">{{ act.timestamp | date:'HH:mm (dd/MM)' }}</time>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          } @else {
+            <div class="py-8 text-center text-text-muted text-xs font-semibold">
+              {{ 'Belum ada log aktivitas terdeteksi hari ini.' | translate }}
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Transaction Sales Feed for Admin (No general log activities) -->
+        <div class="md:col-span-2 bg-white border border-border rounded-2xl p-6 shadow-sm">
+          <h2 class="font-sans text-lg font-extrabold text-primary-900 mb-4">{{ 'Transaksi Kasir Terbaru' | translate }}</h2>
+          
+          @if (getSalesActivities(data.recentActivities); as salesActs) {
+            @if (salesActs.length > 0) {
+              <div class="flow-root">
+                <ul class="-mb-8">
+                  @for (act of salesActs; track act.timestamp; let last = $last) {
+                    <li>
+                      <div class="relative pb-8">
+                        @if (!last) {
+                          <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-border" aria-hidden="true"></span>
+                        }
+                        <div class="relative flex space-x-3">
+                          <div>
+                            <span class="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 ring-8 ring-white">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                              </svg>
+                            </span>
+                          </div>
+                          <div class="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                            <div>
+                              <p class="text-xs font-bold text-primary-900">{{ act.description }}</p>
+                              <p class="text-[10px] text-text-soft font-semibold mt-0.5" *ngIf="act.userName">
+                                <span class="inline-flex items-center gap-1">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline text-text-soft/70">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                                  </svg>
+                                  {{ act.userName }}
+                                </span>
+                              </p>
+                            </div>
+                            <div class="text-right text-[10px] whitespace-nowrap text-text-soft font-bold">
+                              <time [dateTime]="act.timestamp">{{ act.timestamp | date:'HH:mm (dd/MM)' }}</time>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <div class="py-8 text-center text-text-muted text-xs font-semibold">
+                {{ 'Belum ada transaksi penjualan yang dilayani hari ini.' | translate }}
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- Quick Navigation links (1/3 width) -->
+      <div class="bg-white border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+        <div>
+          <h2 class="font-sans text-lg font-extrabold text-primary-900 mb-4">{{ 'Navigasi Cepat' | translate }}</h2>
+          <div class="flex flex-col gap-3">
+            <!-- Link POS -->
+            <a routerLink="/sales" class="flex items-center gap-3 p-3 bg-surface-soft border border-border hover:border-primary-400 rounded-xl transition-all no-underline group">
+              <div class="w-9 h-9 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-primary-900">{{ 'POS Penjualan' | translate }}</h4>
+                <p class="text-[10px] text-text-soft font-semibold leading-none mt-0.5">{{ 'Buka kasir transaksi' | translate }}</p>
+              </div>
+            </a>
+
+            <!-- Link Inventory -->
+            <a routerLink="/inventory" class="flex items-center gap-3 p-3 bg-surface-soft border border-border hover:border-success rounded-xl transition-all no-underline group">
+              <div class="w-9 h-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0 group-hover:bg-success group-hover:text-white transition-all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-primary-900">{{ 'Kelola Stok' | translate }}</h4>
+                <p class="text-[10px] text-text-soft font-semibold leading-none mt-0.5">{{ 'Pantau mutasi stok toko' | translate }}</p>
+              </div>
+            </a>
+
+            <!-- Link Laporan (Owner only) -->
+            <a *ngIf="isOwner()" routerLink="/reports" class="flex items-center gap-3 p-3 bg-surface-soft border border-border hover:border-warning rounded-xl transition-all no-underline group">
+              <div class="w-9 h-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0 group-hover:bg-warning group-hover:text-white transition-all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-primary-900">{{ 'Laporan Keuangan' | translate }}</h4>
+                <p class="text-[10px] text-text-soft font-semibold leading-none mt-0.5">{{ 'Analisis rugi laba & omset' | translate }}</p>
+              </div>
+            </a>
+          </div>
+        </div>
+        
+        <div class="mt-4 text-[10px] text-text-soft text-center font-bold">
+          siEntong POS &bull; v0.0.1
+        </div>
+      </div>
+
+    </div>
+
+  }
+}
+</section>

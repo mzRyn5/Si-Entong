@@ -1,0 +1,218 @@
+<section class="p-6 page">
+  <header class="page-header">
+    <div class="page-title">
+      <h2>{{ 'Sesi Kasir' | translate }}</h2>
+      <p>{{ 'Kelola saldo awal, akhir, dan mutasi kas dalam laci kasir untuk setiap giliran kerja (shift).' | translate }}</p>
+    </div>
+  </header>
+
+  <!-- Active Cash Session Widget -->
+  <article class="card active-session-card mb-6">
+    <header class="card-header flex justify-between items-center">
+      <h3>{{ 'Sesi Kasir Aktif' | translate }}</h3>
+      <div class="flex items-center gap-2">
+        <app-badge [variant]="activeSession() ? 'success' : 'danger'">
+          {{ (activeSession() ? 'Sesi Aktif' : 'Tidak Ada Sesi Aktif') | translate }}
+        </app-badge>
+      </div>
+    </header>
+
+    <div class="card-body">
+      <div class="state-wrapper" *ngIf="loadingActive()">
+        <span class="spinner"></span>
+        <p class="text-sm text-muted mt-2">{{ 'Memeriksa sesi kasir...' | translate }}</p>
+      </div>
+
+      <div class="active-session-details" *ngIf="!loadingActive() && activeSession(); let session">
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">{{ 'Kasir' | translate }}</span>
+            <strong class="detail-value">{{ session.cashierName }}</strong>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">{{ 'Waktu Buka' | translate }}</span>
+            <strong class="detail-value">{{ session.openedAt | dateId: 'datetime' }}</strong>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">{{ 'Modal Awal Laci' | translate }}</span>
+            <strong class="detail-value font-mono">{{ session.openingCashAmount | currencyIdr }}</strong>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">{{ 'Ekspektasi Kas Laci' | translate }}</span>
+            <strong class="detail-value font-mono color-primary">{{ session.expectedCashAmount | currencyIdr }}</strong>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-6">
+          <a class="btn btn-primary" routerLink="/sales">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {{ 'Buka POS / Kasir' | translate }}
+          </a>
+          <button class="btn btn-danger" type="button" (click)="openCloseDrawer()">{{ 'Tutup Sesi Kasir' | translate }}</button>
+        </div>
+      </div>
+
+      <div class="no-active-session py-6 text-center" *ngIf="!loadingActive() && !activeSession()">
+        <p class="text-muted">{{ 'Laci kasir saat ini terkunci. Silakan buka sesi kasir baru untuk memulai transaksi penjualan.' | translate }}</p>
+        <button class="btn btn-primary mt-4 inline-flex items-center" type="button" (click)="openOpenDrawer()">
+          {{ 'Buka Sesi Kasir Baru' | translate }}
+        </button>
+      </div>
+    </div>
+  </article>
+
+  <!-- Cash Sessions History -->
+  <article class="card table-card">
+    <header class="card-header">
+      <h3>{{ 'Riwayat Sesi Kasir' | translate }}</h3>
+    </header>
+
+    <div class="state-wrapper" *ngIf="loadingList()">
+      <app-loading-state [label]="'Memuat riwayat sesi...' | translate" />
+    </div>
+
+    <div class="state-wrapper state-error" *ngIf="!loadingList() && error()">
+      <p>{{ error() }}</p>
+      <button class="btn btn-secondary btn-sm mt-2" type="button" (click)="loadSessions()">{{ 'Coba Lagi' | translate }}</button>
+    </div>
+
+    <div class="state-wrapper state-empty" *ngIf="!loadingList() && !error() && sessions().length === 0">
+      <p class="text-muted">{{ 'Belum ada riwayat sesi kasir.' | translate }}</p>
+    </div>
+
+    <div class="table-container" *ngIf="!loadingList() && !error() && sessions().length > 0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 50px" class="text-center">{{ 'No' | translate }}</th>
+            <th scope="col">{{ 'Kasir' | translate }}</th>
+            <th scope="col">{{ 'Waktu Buka' | translate }}</th>
+            <th scope="col">{{ 'Waktu Tutup' | translate }}</th>
+            <th scope="col" class="text-right">{{ 'Modal Awal' | translate }}</th>
+            <th scope="col" class="text-right">{{ 'Kas Aktual' | translate }}</th>
+            <th scope="col" class="text-right">{{ 'Selisih' | translate }}</th>
+            <th scope="col" style="width: 120px" class="text-center">{{ 'Status' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sessions(); let idx = index">
+            <td class="text-center text-muted">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td><strong>{{ s.cashierName }}</strong></td>
+            <td>{{ s.openedAt | dateId: 'datetime' }}</td>
+            <td>{{ s.closedAt ? (s.closedAt | dateId: 'datetime') : '&mdash;' }}</td>
+            <td class="text-right font-mono">{{ s.openingCashAmount | currencyIdr }}</td>
+            <td class="text-right font-mono">{{ s.actualCashAmount !== undefined && s.actualCashAmount !== null ? (s.actualCashAmount | currencyIdr) : '&mdash;' }}</td>
+            <td class="text-right font-mono" [class.text-danger]="s.differenceAmount && s.differenceAmount < 0" [class.text-success]="s.differenceAmount && s.differenceAmount > 0">
+              {{ s.differenceAmount !== undefined && s.differenceAmount !== null ? (s.differenceAmount | currencyIdr) : '&mdash;' }}
+            </td>
+            <td class="text-center">
+              <app-badge [variant]="s.status === 'Open' ? 'success' : 'info'">
+                {{ s.status | translate }}
+              </app-badge>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <app-pagination
+        [currentPage]="currentPage"
+        [totalPages]="totalPages()"
+        [totalItems]="totalItems()"
+        [pageSize]="pageSize"
+        (pageChange)="onPageChange($event)"
+      />
+    </div>
+  </article>
+</section>
+
+<!-- Drawer: Buka Sesi Kasir -->
+<div class="drawer-backdrop" *ngIf="showOpenDrawer()" (click)="closeOpenDrawer()" role="presentation"></div>
+<aside class="drawer" [class.drawer-open]="showOpenDrawer()" *ngIf="showOpenDrawer()" role="dialog">
+  <header class="drawer-header">
+    <h3>{{ 'Buka Sesi Kasir' | translate }}</h3>
+    <button class="drawer-close" type="button" aria-label="Tutup panel" (click)="closeOpenDrawer()">&times;</button>
+  </header>
+
+  <div class="drawer-body">
+    <form #openForm="ngForm" (ngSubmit)="onSubmitOpen(openForm)" novalidate>
+      <div class="form-group mb-3">
+        <label class="form-label" for="open-amount">{{ 'Saldo Awal Laci *' | translate }}</label>
+        <input
+          id="open-amount"
+          type="number"
+          class="form-input text-right font-mono"
+          name="openingCashAmount"
+          [(ngModel)]="openFormModel.openingCashAmount"
+          required
+          min="0"
+          [placeholder]="'Masukkan modal kas awal...' | translate"
+        />
+      </div>
+
+      <div class="form-group mb-4">
+        <label class="form-label" for="open-notes">{{ 'Catatan Pembuka' | translate }}</label>
+        <textarea
+          id="open-notes"
+          class="form-input"
+          rows="3"
+          name="notes"
+          [(ngModel)]="openFormModel.notes"
+          [placeholder]="'Keterangan laci kasir (opsional)...' | translate"
+        ></textarea>
+      </div>
+
+      <div class="drawer-actions">
+        <button class="btn btn-secondary" type="button" (click)="closeOpenDrawer()" [disabled]="opening()">{{ 'Batal' | translate }}</button>
+        <button class="btn btn-primary" type="submit" [disabled]="opening() || openForm.invalid">
+          {{ opening() ? ('Membuka Sesi...' | translate) : ('Buka Sesi' | translate) }}
+        </button>
+      </div>
+    </form>
+  </div>
+</aside>
+
+<!-- Drawer: Tutup Sesi Kasir -->
+<div class="drawer-backdrop" *ngIf="showCloseDrawer()" (click)="closeCloseDrawer()" role="presentation"></div>
+<aside class="drawer" [class.drawer-open]="showCloseDrawer()" *ngIf="showCloseDrawer()" role="dialog">
+  <header class="drawer-header">
+    <h3>{{ 'Tutup Sesi Kasir' | translate }}</h3>
+    <button class="drawer-close" type="button" aria-label="Tutup panel" (click)="closeCloseDrawer()">&times;</button>
+  </header>
+
+  <div class="drawer-body">
+    <form #closeForm="ngForm" (ngSubmit)="onSubmitClose(closeForm)" novalidate>
+      <div class="form-group mb-3">
+        <label class="form-label" for="close-amount">{{ 'Saldo Akhir Laci Aktual *' | translate }}</label>
+        <input
+          id="close-amount"
+          type="number"
+          class="form-input text-right font-mono"
+          name="actualCashAmount"
+          [(ngModel)]="closeFormModel.actualCashAmount"
+          required
+          min="0"
+          [placeholder]="'Masukkan jumlah kas laci aktual...' | translate"
+        />
+      </div>
+
+      <div class="form-group mb-4">
+        <label class="form-label" for="close-notes">{{ 'Catatan Penutup' | translate }}</label>
+        <textarea
+          id="close-notes"
+          class="form-input"
+          rows="3"
+          name="notes"
+          [(ngModel)]="closeFormModel.notes"
+          [placeholder]="'Keterangan laci kasir (opsional)...' | translate"
+        ></textarea>
+      </div>
+
+      <div class="drawer-actions">
+        <button class="btn btn-secondary" type="button" (click)="closeCloseDrawer()" [disabled]="closing()">{{ 'Batal' | translate }}</button>
+        <button class="btn btn-danger" type="submit" [disabled]="closing() || closeForm.invalid">
+          {{ closing() ? ('Menutup Sesi...' | translate) : ('Tutup Sesi' | translate) }}
+        </button>
+      </div>
+    </form>
+  </div>
+</aside>

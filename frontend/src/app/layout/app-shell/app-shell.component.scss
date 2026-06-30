@@ -1,0 +1,34 @@
+/* App Shell - Minimal styles for elements not covered by Tailwind */
+/* Most styling uses Tailwind CSS with design tokens from DESIGN.md */
+
+nav.overflow-y-auto {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+
+  &::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
+
+@media print {
+  aside,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  .h-screen,
+  .overflow-hidden,
+  .flex,
+  .flex-col,
+  .overflow-y-auto {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  main {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}

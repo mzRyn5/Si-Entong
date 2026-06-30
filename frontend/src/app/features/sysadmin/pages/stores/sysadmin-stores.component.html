@@ -1,0 +1,343 @@
+<section class="p-6 space-y-6">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-xl font-bold text-text mb-1">{{ 'Manajemen Toko' | translate }}</h1>
+      <p class="text-xs text-text-muted">{{ 'Kelola dan pantau seluruh pendaftaran toko kelontong di dalam platform.' | translate }}</p>
+    </div>
+    <button
+      type="button"
+      (click)="openCreateModal()"
+      class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-bold rounded-xl shadow-md shadow-primary-900/20 hover:shadow-lg transition-all text-xs"
+    >
+      <span class="material-symbols-rounded text-sm">add_business</span>
+      <span>{{ 'Registrasi Toko Baru' | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Search and Info Bar -->
+  <div class="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="relative w-full max-w-md">
+        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">search</span>
+        <input 
+          type="text" 
+          class="w-full pl-10 pr-4 py-2 bg-bg border border-border rounded-xl text-xs text-text placeholder-text-muted focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+          [placeholder]="'Cari nama toko, alamat, atau no telepon...' | translate" 
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+      <div class="text-xs font-semibold text-text-muted">
+        {{ 'Menampilkan' | translate }} {{ filteredStores().length }} {{ 'dari' | translate }} {{ stores().length }} {{ 'toko' | translate }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <app-loading-state *ngIf="loading()" [label]="'Memuat data toko dari server...' | translate"></app-loading-state>
+
+  <!-- Error State -->
+  <div class="bg-danger-soft border border-danger/20 rounded-2xl p-4 flex items-center gap-3 text-xs text-danger" *ngIf="error() && !loading()">
+    <span class="material-symbols-rounded text-lg">error_outline</span>
+    <div class="flex-1">{{ error() }}</div>
+    <button class="px-3 py-1.5 bg-danger text-white rounded-xl font-bold hover:bg-danger-strong transition-colors" (click)="loadStores()">{{ 'Coba Lagi' | translate }}</button>
+  </div>
+
+  <!-- Empty State -->
+  <div class="bg-surface border border-border rounded-2xl py-12 text-center" *ngIf="filteredStores().length === 0 && !loading() && !error()">
+    <div class="max-w-sm mx-auto">
+      <div class="mb-4 text-text-muted">
+        <span class="material-symbols-rounded text-5xl">storefront</span>
+      </div>
+      <h3 class="font-bold text-text text-base mb-1">{{ 'Toko Tidak Ditemukan' | translate }}</h3>
+      <p class="text-xs text-text-muted mb-4">{{ 'Tidak ada data toko kelontong yang sesuai dengan kata kunci pencarian Anda.' | translate }}</p>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div *ngIf="filteredStores().length > 0 && !loading() && !error()" class="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-left">
+        <thead>
+          <tr class="border-b border-border bg-surface-soft text-[10px] font-bold text-text-muted uppercase tracking-wider select-none">
+            <th class="px-6 py-4">{{ 'Informasi Toko' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Kontak & Alamat' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Tanggal Bergabung' | translate }}</th>
+            <th class="px-6 py-4">{{ 'Status' | translate }}</th>
+            <th class="px-6 py-4 text-right">{{ 'Aksi' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border text-xs text-text">
+          <tr *ngFor="let store of filteredStores()" class="hover:bg-bg/40 transition-colors">
+            <!-- Store info -->
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-base shrink-0">
+                  <span class="material-symbols-rounded">storefront</span>
+                </div>
+                <div>
+                  <span class="font-bold text-text block leading-normal">{{ store.name }}</span>
+                  <span class="text-[10px] text-text-muted block mt-0.5">
+                    {{ 'Owner' | translate }}: <span class="font-semibold text-primary-700">{{ store.ownerName }}</span>
+                  </span>
+                </div>
+              </div>
+            </td>
+            <!-- Contact & Address -->
+            <td class="px-6 py-4 text-text-muted">
+              <div class="flex flex-col gap-1">
+                <span class="flex items-center gap-1.5" *ngIf="store.phone">
+                  <span class="material-symbols-rounded text-sm text-text-muted">phone</span>
+                  <span>{{ store.phone }}</span>
+                </span>
+                <span class="flex items-center gap-1.5" *ngIf="store.address">
+                  <span class="material-symbols-rounded text-sm text-text-muted">location_on</span>
+                  <span class="truncate max-w-xs">{{ store.address }}</span>
+                </span>
+              </div>
+            </td>
+            <!-- Date Joined -->
+            <td class="px-6 py-4 text-text-muted">
+              {{ formatDate(store.createdAt) }}
+            </td>
+            <!-- Status -->
+            <td class="px-6 py-4">
+              <app-badge [variant]="store.isActive ? 'success' : 'danger'">
+                {{ store.isActive ? ('Aktif' | translate) : ('Ditangguhkan' | translate) }}
+              </app-badge>
+            </td>
+            <!-- Actions -->
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-1.5">
+                <button 
+                  type="button"
+                  class="w-8 h-8 flex items-center justify-center border border-border hover:bg-bg rounded-lg text-text hover:text-primary-600 transition-colors" 
+                  [title]="'Ubah Profil Toko' | translate"
+                  (click)="openEditModal(store)"
+                >
+                  <span class="material-symbols-rounded text-base">edit</span>
+                </button>
+                <button 
+                  type="button"
+                  class="w-8 h-8 flex items-center justify-center border border-border rounded-lg text-text transition-colors" 
+                  [ngClass]="store.isActive ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-success-soft hover:text-success'"
+                  [title]="store.isActive ? ('Tangguhkan Toko' | translate) : ('Aktifkan Toko' | translate)"
+                  (click)="toggleStoreStatus(store)"
+                >
+                  <span class="material-symbols-rounded text-base">
+                    {{ store.isActive ? 'block' : 'check_circle' }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Modal -->
+  <div *ngIf="showCreateModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-all" (click)="closeCreateModal()"></div>
+    
+    <!-- Modal Panel -->
+    <div class="relative w-full max-w-2xl bg-white border border-border rounded-2xl shadow-2xl flex flex-col z-10 max-h-[90vh] scale-in">
+      <div class="flex items-center justify-between p-5 border-b border-border bg-surface-soft shrink-0">
+        <div>
+          <h2 class="font-bold text-text text-base">{{ 'Registrasi Toko & Akun Owner' | translate }}</h2>
+          <p class="text-[10px] text-text-muted mt-0.5">{{ 'Daftarkan profil toko fisik baru sekaligus membuat akun Owner pertama.' | translate }}</p>
+        </div>
+        <button type="button" (click)="closeCreateModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg text-text-muted hover:text-text transition-colors">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form [formGroup]="createForm" (ngSubmit)="submitCreate()" class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+          <!-- Modal error alert -->
+          <div class="bg-danger-soft border border-danger/20 rounded-xl p-3 text-xs text-danger flex gap-2" *ngIf="modalError()">
+            <span class="material-symbols-rounded text-sm shrink-0">error</span>
+            <div>{{ modalError() }}</div>
+          </div>
+
+          <!-- Store Section -->
+          <div class="space-y-4">
+            <h3 class="text-xs font-bold text-primary-600 uppercase tracking-wider border-b border-border pb-1.5">{{ 'Informasi Toko' | translate }}</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Nama Toko' | translate }} *</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="name" [placeholder]="'Nama Toko' | translate" />
+                <p class="text-[10px] text-danger mt-1" *ngIf="createForm.get('name')?.touched && createForm.get('name')?.invalid">
+                  {{ 'Nama Toko wajib diisi (Maks. 100 karakter).' | translate }}
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'No. Telepon Toko' | translate }}</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="phone" [placeholder]="'No. Telepon Toko' | translate" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Alamat Lengkap' | translate }}</label>
+              <textarea class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" rows="2" formControlName="address" [placeholder]="'Alamat Lengkap' | translate"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Valuta / Currency' | translate }} *</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="currency" />
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Zona Waktu / Timezone' | translate }} *</label>
+                <select class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium cursor-pointer" formControlName="timezone">
+                  <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Footer Struk Kasir' | translate }}</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="receiptFooter" [placeholder]="'Footer Struk Kasir' | translate" />
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Logo URL (Opsional)' | translate }}</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="logoUrl" placeholder="https://example.com/logo.png" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Owner Section -->
+          <div class="space-y-4 pt-2">
+            <h3 class="text-xs font-bold text-primary-600 uppercase tracking-wider border-b border-border pb-1.5">{{ 'Informasi Akun Owner' | translate }}</h3>
+            
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Nama Lengkap Owner' | translate }} *</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="ownerName" [placeholder]="'Nama Lengkap Owner' | translate" />
+              <p class="text-[10px] text-danger mt-1" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.invalid">
+                {{ 'Nama Owner wajib diisi.' | translate }}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Username Login' | translate }} *</label>
+                <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="ownerUsername" [placeholder]="'Username Login' | translate" />
+                <p class="text-[10px] text-danger mt-1" *ngIf="createForm.get('ownerUsername')?.touched && createForm.get('ownerUsername')?.invalid">
+                  {{ 'Username wajib diisi.' | translate }}
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Password Akun' | translate }} *</label>
+                <input type="password" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="ownerPassword" [placeholder]="'Password Akun' | translate" />
+                <p class="text-[10px] text-danger mt-1" *ngIf="createForm.get('ownerPassword')?.touched && createForm.get('ownerPassword')?.invalid">
+                  {{ 'Password minimal 6 karakter.' | translate }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 border-t border-border bg-surface-soft flex gap-3 shrink-0 justify-end">
+          <button type="button" class="py-2 px-4 border border-border-strong hover:bg-bg text-xs font-bold rounded-xl transition-colors" (click)="closeCreateModal()" [disabled]="submitting()">
+            {{ 'Batal' | translate }}
+          </button>
+          <button type="submit" class="py-2 px-5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors" [disabled]="submitting() || createForm.invalid">
+            {{ submitting() ? ('Memproses...' | translate) : ('Simpan & Daftarkan' | translate) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div *ngIf="showEditModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" (click)="closeEditModal()"></div>
+    
+    <!-- Modal Panel -->
+    <div class="relative w-full max-w-2xl bg-white border border-border rounded-2xl shadow-2xl flex flex-col z-10 max-h-[90vh] scale-in">
+      <div class="flex items-center justify-between p-5 border-b border-border bg-surface-soft shrink-0">
+        <div>
+          <h2 class="font-bold text-text text-base">{{ 'Ubah Profil Toko' | translate }}</h2>
+          <p class="text-[10px] text-text-muted mt-0.5">{{ 'Ubah data identitas toko kelontong terpilih.' | translate }}</p>
+        </div>
+        <button type="button" (click)="closeEditModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg text-text-muted hover:text-text transition-colors">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="submitEdit()" class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+          <!-- Modal error alert -->
+          <div class="bg-danger-soft border border-danger/20 rounded-xl p-3 text-xs text-danger flex gap-2" *ngIf="modalError()">
+            <span class="material-symbols-rounded text-sm shrink-0">error</span>
+            <div>{{ modalError() }}</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Nama Toko' | translate }} *</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="name" [placeholder]="'Nama Toko' | translate" />
+              <p class="text-[10px] text-danger mt-1" *ngIf="editForm.get('name')?.touched && editForm.get('name')?.invalid">
+                {{ 'Nama Toko wajib diisi.' | translate }}
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'No. Telepon Toko' | translate }}</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="phone" [placeholder]="'No. Telepon Toko' | translate" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Alamat Lengkap' | translate }}</label>
+            <textarea class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" rows="2" formControlName="address" [placeholder]="'Alamat Lengkap' | translate"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Valuta / Currency' | translate }} *</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="currency" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Zona Waktu / Timezone' | translate }} *</label>
+              <select class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium cursor-pointer" formControlName="timezone">
+                <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Footer Struk Kasir' | translate }}</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="receiptFooter" [placeholder]="'Footer Struk Kasir' | translate" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{{ 'Logo URL (Opsional)' | translate }}</label>
+              <input type="text" class="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all font-medium" formControlName="logoUrl" />
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 border-t border-border bg-surface-soft flex gap-3 shrink-0 justify-end">
+          <button type="button" class="py-2 px-4 border border-border-strong hover:bg-bg text-xs font-bold rounded-xl transition-colors" (click)="closeEditModal()" [disabled]="submitting()">
+            {{ 'Batal' | translate }}
+          </button>
+          <button type="submit" class="py-2 px-5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors" [disabled]="submitting() || editForm.invalid">
+            {{ submitting() ? ('Memproses...' | translate) : ('Simpan Perubahan' | translate) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

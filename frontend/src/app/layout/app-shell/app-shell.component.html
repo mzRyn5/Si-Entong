@@ -1,0 +1,175 @@
+<div class="h-screen flex bg-bg overflow-hidden w-full">
+  <!-- Mobile Backdrop -->
+  @if (isMobile && isSidebarOpen) {
+    <button
+      type="button"
+      class="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
+      [attr.aria-label]="'Tutup menu' | translate"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <!-- Sidebar - Always visible on desktop, toggleable on mobile -->
+  <aside
+    class="h-full bg-gradient-to-b from-primary-900 to-primary-800 text-white flex flex-col shrink-0 transition-all duration-200 ease-out"
+    [class.w-\[248px\]]="isSidebarOpen || isMobile"
+    [class.w-\[72px\]]="!isSidebarOpen && !isMobile"
+    [class.fixed]="isMobile"
+    [class.inset-y-0]="isMobile"
+    [class.left-0]="isMobile"
+    [class.z-40]="isMobile"
+    [class.-translate-x-full]="isMobile && !isSidebarOpen"
+    [class.translate-x-0]="isMobile && isSidebarOpen"
+  >
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-5 py-6 border-b border-white/10" [class.justify-center]="!isSidebarOpen && !isMobile" [class.px-3]="!isSidebarOpen && !isMobile">
+      <img src="assets/app_logo.jpg" alt="siEntong Logo" class="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-900/20 border border-white/10 shrink-0" />
+      <div class="overflow-hidden" *ngIf="isSidebarOpen || isMobile">
+        <strong class="font-bold text-white text-sm block truncate">{{ (settingsService.storeProfile$ | async)?.name || 'siEntong' }}</strong>
+        <span class="text-[10px] uppercase font-semibold tracking-wider text-white/50 block">{{ 'Manajemen Toko' | translate }}</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto py-4 px-3" [class.px-2]="!isSidebarOpen && !isMobile">
+      @if (isSysAdmin()) {
+        <div class="space-y-1">
+          @for (item of sysAdminNavigationItems; track item.route) {
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="bg-white/15 text-white font-semibold"
+              [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+              (click)="isMobile && closeSidebar()"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-all text-sm"
+              [class.justify-center]="!isSidebarOpen && !isMobile"
+              [title]="item.label | translate"
+            >
+              <span class="material-symbols-rounded text-lg w-5 text-center text-white/55">{{ item.icon }}</span>
+              <span *ngIf="isSidebarOpen || isMobile">{{ item.label | translate }}</span>
+            </a>
+          }
+        </div>
+      } @else {
+        @for (group of navigationGroups; track group.label) {
+          @if (isGroupVisible(group) && hasVisibleItems(group)) {
+            <div class="mb-3">
+              <!-- Group Header -->
+              <button
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-all text-xs font-semibold uppercase tracking-wide"
+                [class.justify-center]="!isSidebarOpen && !isMobile"
+                (click)="toggleGroup(group)"
+                type="button"
+                [title]="group.label | translate"
+              >
+                <span class="material-symbols-rounded text-lg w-5 text-center">{{ group.icon }}</span>
+                <span class="flex-1 text-left" *ngIf="isSidebarOpen || isMobile">{{ group.label | translate }}</span>
+                <span class="material-symbols-rounded text-base transition-transform duration-150" [class.rotate-180]="group.expanded" *ngIf="isSidebarOpen || isMobile">expand_more</span>
+              </button>
+
+              <!-- Group Items -->
+              @if (group.expanded) {
+                <div class="mt-1 space-y-0.5" [class.ml-2]="isSidebarOpen || isMobile">
+                  @for (item of getItemsByGroup(group.label); track item.route) {
+                    @if (isItemVisible(item)) {
+                      <a
+                        [routerLink]="item.route"
+                        routerLinkActive="bg-white/15 text-white font-semibold"
+                        [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+                        (click)="isMobile && closeSidebar()"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-white/65 hover:bg-white/10 hover:text-white transition-all text-sm"
+                        [class.justify-center]="!isSidebarOpen && !isMobile"
+                        [title]="item.label | translate"
+                      >
+                        <span class="material-symbols-rounded text-lg w-5 text-center text-white/50">{{ item.icon }}</span>
+                        <span *ngIf="isSidebarOpen || isMobile">{{ item.label | translate }}</span>
+                      </a>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+      }
+    </nav>
+  </aside>
+
+  <!-- Main Area -->
+  <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+    <!-- Topbar -->
+    <header class="h-[68px] bg-white/85 backdrop-blur-md border-b border-border flex items-center justify-between px-4 lg:px-6 gap-4 shrink-0">
+      <!-- Menu Toggle -->
+      <button
+        type="button"
+        (click)="toggleSidebar()"
+        class="w-10 h-10 flex items-center justify-center border border-border-strong rounded-xl bg-surface text-primary-700 hover:bg-primary-100 transition-colors shrink-0"
+        [attr.aria-label]="'Toggle menu' | translate"
+      >
+        <span class="material-symbols-rounded">menu</span>
+      </button>
+
+      <!-- Title -->
+      <div class="flex-1 min-w-0">
+        <h1 class="text-base lg:text-lg font-bold bg-gradient-to-r from-primary-700 via-primary-600 to-primary-800 bg-clip-text text-transparent truncate">
+          {{ 'Sistem Internal Toko Kelontong' | translate }}
+        </h1>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-2 lg:gap-3">
+        <!-- Language Toggle -->
+        <div class="flex items-center bg-primary-100/50 rounded-full p-1 text-xs font-bold">
+          <button
+            type="button"
+            (click)="languageService.setLanguage('id')"
+            class="px-2 py-1 rounded-full transition-all"
+            [class.bg-primary-600]="languageService.currentLang() === 'id'"
+            [class.text-white]="languageService.currentLang() === 'id'"
+            [class.text-primary-700]="languageService.currentLang() !== 'id'"
+          >ID</button>
+          <button
+            type="button"
+            (click)="languageService.setLanguage('en')"
+            class="px-2 py-1 rounded-full transition-all"
+            [class.bg-primary-600]="languageService.currentLang() === 'en'"
+            [class.text-white]="languageService.currentLang() === 'en'"
+            [class.text-primary-700]="languageService.currentLang() !== 'en'"
+          >EN</button>
+        </div>
+
+        <!-- User Profile -->
+        @if (authService.currentUser$ | async; as user) {
+          <div class="flex items-center gap-2 px-2 lg:px-4 py-1.5 bg-surface border border-border rounded-full">
+            <span class="w-7 h-7 rounded-full bg-gradient-to-br from-primary-200 to-primary-300 text-primary-700 font-bold text-xs flex items-center justify-center">
+              {{ getInitials(user.name || user.username) }}
+            </span>
+            <div class="hidden sm:block">
+              <p class="text-xs font-bold text-text leading-none">{{ user.name || user.username }}</p>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-text-muted mt-0.5">{{ user.role | translate }}</p>
+            </div>
+          </div>
+        }
+
+        <!-- Logout -->
+        <button
+          type="button"
+          (click)="logout()"
+          class="w-10 h-10 flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger-soft rounded-xl transition-colors"
+          [attr.aria-label]="'Keluar' | translate"
+        >
+          <span class="material-symbols-rounded">logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto p-4 lg:p-6 bg-bg">
+      <router-outlet></router-outlet>
+    </main>
+
+    <!-- Footer -->
+    <footer class="px-4 lg:px-6 py-4 text-center text-xs text-text-muted border-t border-border bg-white/40 shrink-0">
+      Copyright by mzryan 2026
+    </footer>
+  </div>
+</div>

@@ -1,0 +1,165 @@
+.store-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.search-input-group {
+  .search-icon {
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+  }
+}
+
+.pl-10 {
+  padding-left: 2.5rem;
+}
+
+.max-w-md {
+  max-width: 28rem;
+}
+
+.max-w-sm {
+  max-width: 24rem;
+}
+
+.truncate-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+.max-w-xs {
+  max-width: 15rem;
+}
+
+.hover-row {
+  transition: background-color 0.2s ease-in-out;
+  &:hover {
+    background-color: #faf5ff; /* Lavender pastel tint */
+  }
+}
+
+/* Modal styling */
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1050;
+  transition: all 0.3s ease-in-out;
+}
+
+.modal-card {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body-custom {
+  overflow-y: auto;
+}
+
+.max-h-modal {
+  max-height: calc(90vh - 140px);
+}
+
+.scale-in {
+  animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  transition: all 0.15s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-icon-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+  
+  &:hover {
+    background-color: #e2e8f0;
+    color: #334155;
+  }
+}
+
+.btn-light-danger {
+  background-color: #fef2f2;
+  color: #ef4444;
+  
+  &:hover {
+    background-color: #fee2e2;
+  }
+}
+
+.btn-light-success {
+  background-color: #f0fdf4;
+  color: #22c55e;
+  
+  &:hover {
+    background-color: #dcfce7;
+  }
+}
+
+.btn-outline {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+  
+  &:hover {
+    background-color: #f8fafc;
+    border-color: #94a3b8;
+  }
+}
+
+/* Forms styling */
+.form-label {
+  letter-spacing: 0.05em;
+}
+
+.form-control:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+}

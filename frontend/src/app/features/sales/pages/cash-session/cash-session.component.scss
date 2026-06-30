@@ -1,0 +1,38 @@
+// Styles for cash session management page
+.active-session-card {
+  border: 1.5px solid var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .detail-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-value {
+    font-size: 1.15rem;
+    color: var(--color-text-primary);
+  }
+}
+
+.no-active-session {
+  p {
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+}

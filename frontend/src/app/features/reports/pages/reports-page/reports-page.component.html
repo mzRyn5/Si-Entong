@@ -1,0 +1,378 @@
+<section class="p-6 page reports-print-root">
+  <!-- Print Header (Visible only when printing) -->
+  <div class="print-only-header text-center pb-4 mb-4 border-b-2 border-double border-gray-800">
+    <h1 class="text-2xl font-bold uppercase tracking-wider text-gray-900 m-0">{{ storeName() }}</h1>
+    <p class="text-xs text-gray-600 m-0.5" *ngIf="storeAddress()">{{ storeAddress() }}</p>
+    <p class="text-xs text-gray-600 m-0" *ngIf="storePhone()">{{ 'Telp:' | translate }} {{ storePhone() }}</p>
+  </div>
+
+  <!-- Print Report Title (Visible only when printing, below the kop line) -->
+  <div class="print-only-title text-center mb-6">
+    <h2 class="text-base font-bold uppercase text-gray-900 m-0">{{ getReportTitle() | translate }}</h2>
+    <p class="text-xs text-gray-600 mt-1">
+      {{ 'Periode Laporan:' | translate }} {{ getReportPeriod() }}
+    </p>
+  </div>
+
+  <header class="page-header">
+    <div class="page-title">
+      <h2>{{ 'Laporan Toko' | translate }}</h2>
+      <p>{{ 'Lihat performa penjualan, valuasi stok, dan ringkasan laba rugi toko.' | translate }}</p>
+    </div>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <nav class="tabs-navigation" aria-label="Navigasi Laporan">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'daily'"
+      type="button"
+      (click)="setActiveTab('daily')"
+    >
+      {{ 'Penjualan Harian' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'product'"
+      type="button"
+      (click)="setActiveTab('product')"
+    >
+      {{ 'Penjualan Produk' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'valuation'"
+      type="button"
+      (click)="setActiveTab('valuation')"
+    >
+      {{ 'Valuasi Stok' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'profit'"
+      type="button"
+      (click)="setActiveTab('profit')"
+    >
+      {{ 'Ringkasan Laba' | translate }}
+    </button>
+  </nav>
+
+  <!-- Filter Bar Card -->
+  <article class="reports-filter-card mb-4">
+    <!-- Filter: Daily Sales -->
+    <div class="reports-filter-grid" *ngIf="activeTab() === 'daily'">
+      <div class="reports-date-group">
+        <div class="form-group mb-0">
+          <label class="form-label" for="dailyFrom">{{ 'Dari Tanggal' | translate }}</label>
+          <input class="form-input" id="dailyFrom" type="date" [(ngModel)]="dailyFromDate" />
+        </div>
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <div class="form-group mb-0">
+          <label class="form-label" for="dailyTo">{{ ' ' | translate }}</label>
+          <input class="form-input" id="dailyTo" type="date" [(ngModel)]="dailyToDate" />
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="dailyCurrentPage = 1; loadActiveTabData()">
+          {{ 'Filter' | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="exporting() || dailySales().length === 0" (click)="exportExcel()">
+          {{ (exporting() ? 'Mengekspor...' : 'Ekspor Excel') | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="dailySales().length === 0" (click)="exportPdf()">
+          <span class="material-symbols-rounded text-sm">picture_as_pdf</span>
+          {{ 'Ekspor PDF' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter: Product Sales -->
+    <div class="reports-filter-grid" *ngIf="activeTab() === 'product'">
+      <div class="reports-date-group">
+        <div class="form-group mb-0">
+          <label class="form-label" for="prodFrom">{{ 'Dari Tanggal' | translate }}</label>
+          <input class="form-input" id="prodFrom" type="date" [(ngModel)]="productFromDate" />
+        </div>
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <div class="form-group mb-0">
+          <label class="form-label" for="prodTo">{{''| translate }}</label>
+          <input class="form-input" id="prodTo" type="date" [(ngModel)]="productToDate" />
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="productCurrentPage = 1; loadActiveTabData()">
+          {{ 'Filter' | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="exporting() || productSales().length === 0" (click)="exportExcel()">
+          {{ (exporting() ? 'Mengekspor...' : 'Ekspor Excel') | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="productSales().length === 0" (click)="exportPdf()">
+          <span class="material-symbols-rounded text-sm">picture_as_pdf</span>
+          {{ 'Ekspor PDF' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter: Stock Valuation -->
+    <div class="reports-filter-grid" *ngIf="activeTab() === 'valuation'">
+      <div class="reports-filter-group">
+        <div class="form-group mb-0 reports-search-field">
+          <label class="form-label" for="valSearch">{{ 'Cari Produk' | translate }}</label>
+          <input class="form-input" id="valSearch" type="search" [placeholder]="'Nama produk...' | translate" [(ngModel)]="stockSearch" />
+        </div>
+        <div class="form-group mb-0 reports-category-field">
+          <label class="form-label" for="valCat">{{ 'Kategori' | translate }}</label>
+          <select class="form-select" id="valCat" [(ngModel)]="stockCategoryId">
+            <option value="">{{ 'Semua Kategori' | translate }}</option>
+            <option *ngFor="let c of categories()" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="stockCurrentPage = 1; loadActiveTabData()">
+          {{ 'Filter' | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="exporting() || stockValuation().length === 0" (click)="exportExcel()">
+          {{ (exporting() ? 'Mengekspor...' : 'Ekspor Excel') | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="stockValuation().length === 0" (click)="exportPdf()">
+          <span class="material-symbols-rounded text-sm">picture_as_pdf</span>
+          {{ 'Ekspor PDF' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter: Basic Profit -->
+    <div class="reports-filter-grid" *ngIf="activeTab() === 'profit'">
+      <div class="reports-date-group">
+        <div class="form-group mb-0">
+          <label class="form-label" for="profitFrom">{{ 'Dari Tanggal' | translate }}</label>
+          <input class="form-input" id="profitFrom" type="date" [(ngModel)]="profitFromDate" />
+        </div>
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <div class="form-group mb-0">
+          <label class="form-label" for="profitTo">{{ '' | translate }}</label>
+          <input class="form-input" id="profitTo" type="date" [(ngModel)]="profitToDate" />
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="loadActiveTabData()">
+          {{ 'Filter' | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="exporting() || !profitData()" (click)="exportExcel()">
+          {{ (exporting() ? 'Mengekspor...' : 'Ekspor Excel') | translate }}
+        </button>
+        <button class="btn btn-secondary" type="button" [disabled]="!profitData()" (click)="exportPdf()">
+          <span class="material-symbols-rounded text-sm">picture_as_pdf</span>
+          {{ 'Ekspor PDF' | translate }}
+        </button>
+      </div>
+    </div>
+  </article>
+
+  <!-- Report Data View -->
+  <article class="reports-data-card table-card">
+    <div class="state-wrapper" *ngIf="loading()">
+      <app-loading-state [label]="'Memuat data laporan...' | translate" />
+    </div>
+
+    <div class="state-wrapper state-error" *ngIf="!loading() && error()">
+      <p>{{ error() }}</p>
+      <button class="btn btn-secondary btn-sm mt-2" type="button" (click)="loadActiveTabData()">
+        {{ 'Coba Lagi' | translate }}
+      </button>
+    </div>
+
+    <!-- View: Daily Sales -->
+    <div *ngIf="!loading() && !error() && activeTab() === 'daily'">
+      <div class="state-wrapper state-empty" *ngIf="dailySales().length === 0">
+        <h3>{{ 'Tidak ada data penjualan harian' | translate }}</h3>
+        <p>{{ 'Sesuaikan filter tanggal untuk mencari data transaksi.' | translate }}</p>
+      </div>
+
+      <div class="table-container" *ngIf="dailySales().length > 0">
+        <table class="table reports-table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 60px" class="text-center">{{ 'No' | translate }}</th>
+              <th scope="col">{{ 'Tanggal' | translate }}</th>
+              <th scope="col" class="text-center">{{ 'Transaksi' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Penjualan Kotor' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Total Potongan' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Penjualan Bersih' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of dailySales(); let idx = index">
+              <td class="text-center text-muted">{{ (dailyCurrentPage - 1) * dailyPageSize + idx + 1 }}</td>
+              <td>{{ item.date | date: 'dd MMM yyyy' }}</td>
+              <td class="text-center font-semibold">{{ item.transactionCount }}</td>
+              <td class="text-right font-mono">{{ item.totalSalesAmount | currencyIdr }}</td>
+              <td class="text-right text-danger font-mono">{{ item.totalDiscountAmount | currencyIdr }}</td>
+              <td class="text-right text-success font-semibold font-mono">{{ item.netSalesAmount | currencyIdr }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <app-pagination
+          [currentPage]="dailyCurrentPage"
+          [totalPages]="dailyTotalPages()"
+          [totalItems]="dailyTotalItems()"
+          [pageSize]="dailyPageSize"
+          (pageChange)="onDailyPageChange($event)"
+        />
+      </div>
+    </div>
+
+    <!-- View: Product Sales -->
+    <div *ngIf="!loading() && !error() && activeTab() === 'product'">
+      <div class="state-wrapper state-empty" *ngIf="productSales().length === 0 && !productSearch && !productCategoryId">
+        <h3>{{ 'Tidak ada data penjualan produk' | translate }}</h3>
+        <p>{{ 'Sesuaikan filter tanggal untuk mencari data transaksi.' | translate }}</p>
+      </div>
+ 
+      <div class="table-container" *ngIf="productSales().length > 0 || productSearch || productCategoryId">
+        <!-- Search and Category filters displayed conditionally above the table -->
+        <div class="reports-table-filters">
+          <div class="form-group mb-0 reports-search-field">
+            <label class="form-label text-xs font-semibold" for="prodSearch">{{ 'Cari Produk' | translate }}</label>
+            <div class="search-wrapper">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="form-input search-input w-full" id="prodSearch" type="search" [placeholder]="'Nama produk...' | translate" [(ngModel)]="productSearch" (ngModelChange)="productCurrentPage = 1; loadActiveTabData()" />
+            </div>
+          </div>
+          <div class="form-group mb-0 reports-category-field">
+            <label class="form-label text-xs font-semibold" for="prodCat">{{ 'Kategori' | translate }}</label>
+            <select class="form-select w-full" id="prodCat" [(ngModel)]="productCategoryId" (ngModelChange)="productCurrentPage = 1; loadActiveTabData()">
+              <option value="">{{ 'Semua Kategori' | translate }}</option>
+              <option *ngFor="let c of categories()" [value]="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <button *ngIf="productSearch || productCategoryId" class="btn btn-secondary btn-sm shrink-0" type="button" (click)="clearProductFilters()" style="height: 38px;">
+            {{ 'Hapus Pencarian' | translate }}
+          </button>
+        </div>
+ 
+        <table class="table reports-table" *ngIf="productSales().length > 0">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 60px" class="text-center">{{ 'No' | translate }}</th>
+              <th scope="col">{{ 'Nama Produk' | translate }}</th>
+              <th scope="col" class="text-center">{{ 'Qty Terjual' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Penjualan Kotor' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Estimasi HPP' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Laba Kotor' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of productSales(); let idx = index">
+              <td class="text-center text-muted">{{ (productCurrentPage - 1) * productPageSize + idx + 1 }}</td>
+              <td><strong>{{ item.productName }}</strong></td>
+              <td class="text-center">{{ item.quantitySold }}</td>
+              <td class="text-right font-mono">{{ item.grossSalesAmount | currencyIdr }}</td>
+              <td class="text-right font-mono text-text-muted">{{ item.estimatedCostAmount | currencyIdr }}</td>
+              <td class="text-right text-success font-semibold font-mono">{{ item.estimatedGrossProfitAmount | currencyIdr }}</td>
+            </tr>
+          </tbody>
+        </table>
+ 
+        <div class="state-wrapper state-empty" *ngIf="productSales().length === 0">
+          <h3>{{ 'Pencarian Tidak Ditemukan' | translate }}</h3>
+          <p>{{ 'Tidak ada produk yang cocok dengan kata kunci atau kategori tersebut.' | translate }}</p>
+        </div>
+ 
+        <app-pagination
+          *ngIf="productSales().length > 0"
+          [currentPage]="productCurrentPage"
+          [totalPages]="productTotalPages()"
+          [totalItems]="productTotalItems()"
+          [pageSize]="productPageSize"
+          (pageChange)="onProductPageChange($event)"
+        />
+      </div>
+    </div>
+
+    <!-- View: Stock Valuation -->
+    <div *ngIf="!loading() && !error() && activeTab() === 'valuation'">
+      <div class="state-wrapper state-empty" *ngIf="stockValuation().length === 0">
+        <h3>{{ 'Tidak ada data valuasi stok' | translate }}</h3>
+        <p>{{ 'Coba cari nama produk yang lain.' | translate }}</p>
+      </div>
+
+      <div class="table-container" *ngIf="stockValuation().length > 0">
+        <table class="table reports-table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 60px" class="text-center">{{ 'No' | translate }}</th>
+              <th scope="col">{{ 'Nama Produk' | translate }}</th>
+              <th scope="col" class="text-center">{{ 'Stok' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Harga Beli' | translate }}</th>
+              <th scope="col" class="text-right">{{ 'Nilai Aset' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of stockValuation(); let idx = index">
+              <td class="text-center text-muted">{{ (stockCurrentPage - 1) * stockPageSize + idx + 1 }}</td>
+              <td><strong>{{ item.productName }}</strong></td>
+              <td class="text-center font-mono" [ngClass]="{'text-danger font-semibold': item.currentStock <= 0}">{{ item.currentStock }}</td>
+              <td class="text-right font-mono">{{ item.purchasePrice | currencyIdr }}</td>
+              <td class="text-right text-success font-semibold font-mono">{{ item.stockValue | currencyIdr }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <app-pagination
+          [currentPage]="stockCurrentPage"
+          [totalPages]="stockTotalPages()"
+          [totalItems]="stockTotalItems()"
+          [pageSize]="stockPageSize"
+          (pageChange)="onStockPageChange($event)"
+        />
+      </div>
+    </div>
+
+    <!-- View: Basic Profit -->
+    <div *ngIf="!loading() && !error() && activeTab() === 'profit'">
+      <div class="state-wrapper state-empty" *ngIf="!profitData()">
+        <h3>{{ 'Tidak ada data performa laba' | translate }}</h3>
+      </div>
+
+      <div class="profit-summary-grid" *ngIf="profitData() as data">
+        <section class="profit-card accent-blue">
+          <span class="metric-label">{{ 'Penjualan Bersih' | translate }}</span>
+          <span class="metric-value">{{ data.netSalesAmount | currencyIdr }}</span>
+        </section>
+
+        <section class="profit-card">
+          <span class="metric-label">{{ 'Harga Pokok Penjualan (HPP)' | translate }}</span>
+          <span class="metric-value">{{ data.estimatedCostOfGoodsSold | currencyIdr }}</span>
+        </section>
+
+        <section class="profit-card accent-green">
+          <span class="metric-label">{{ 'Laba Kotor' | translate }}</span>
+          <span class="metric-value">{{ data.estimatedGrossProfit | currencyIdr }}</span>
+        </section>
+
+        <section class="profit-card accent-red">
+          <span class="metric-label">{{ 'Total Pengeluaran' | translate }}</span>
+          <span class="metric-value">{{ data.expenseAmount | currencyIdr }}</span>
+        </section>
+
+        <section class="profit-card" [ngClass]="data.estimatedNetProfit >= 0 ? 'accent-green' : 'accent-red'">
+          <span class="metric-label">{{ 'Estimasi Laba Bersih' | translate }}</span>
+          <span class="metric-value">{{ data.estimatedNetProfit | currencyIdr }}</span>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <!-- Print Signature (Visible only when printing) -->
+  <div class="print-only-signature mt-12 pt-6 flex justify-end">
+    <div class="text-center w-64 text-sm text-gray-900">
+      <p>Solo, {{ todayDate | date: 'dd MMMM yyyy' }}</p>
+      <p class="font-semibold mt-1">{{ 'Pemilik Toko (Owner),' | translate }}</p>
+      <div class="h-20"></div>
+      <p class="font-bold underline">{{ ownerName() }}</p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,665 @@
+<!-- Page stack -->
+    <section class="p-6 page">
+      <header class="page-header">
+        <div class="page-title">
+          <h2>{{ 'Penjualan & Retur' | translate }}</h2>
+          <p>{{ 'Pantau transaksi penjualan kasir (POS) serta kelola pengembalian barang (retur penjualan).' | translate }}</p>
+        </div>
+        <div class="header-actions">
+          <a class="btn btn-primary" routerLink="/sales/pos">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {{ 'Buka POS / Kasir' | translate }}
+          </a>
+        </div>
+      </header>
+
+      <!-- Tabs Navigation -->
+      <nav class="tabs-nav" aria-label="Menu Penjualan">
+        <button
+          class="tab-btn"
+          [class.tab-active]="activeTab() === 'sales'"
+          type="button"
+          (click)="switchTab('sales')"
+        >
+          {{ 'Riwayat Penjualan' | translate }}
+        </button>
+        <button
+          class="tab-btn"
+          [class.tab-active]="activeTab() === 'returns'"
+          type="button"
+          (click)="switchTab('returns')"
+        >
+          {{ 'Retur Penjualan' | translate }}
+        </button>
+      </nav>
+
+      @if (activeTab() === 'sales') {
+        <!-- Sales Filters -->
+        <app-filter-bar>
+          <div class="search-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              class="form-input search-input"
+              type="search"
+              [placeholder]="'Cari No. Transaksi...' | translate"
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onFilterChange()"
+              aria-label="Cari transaksi"
+            />
+          </div>
+
+          <div class="filter-select-wrapper">
+            <select
+              class="form-input filter-select"
+              [(ngModel)]="filterPaymentMethod"
+              (ngModelChange)="onFilterChange()"
+              aria-label="Metode Pembayaran"
+            >
+              <option value="">{{ 'Semua Cara Bayar' | translate }}</option>
+              <option value="Cash">Cash</option>
+              <option value="Transfer">Transfer</option>
+              <option value="QRIS">QRIS</option>
+            </select>
+          </div>
+
+          <div class="filter-date-group">
+            <input
+              type="date"
+              class="form-input date-input"
+              [(ngModel)]="fromDate"
+              (ngModelChange)="onFilterChange()"
+              aria-label="Dari Tanggal"
+            />
+            <span class="date-separator">{{ 's/d' | translate }}</span>
+            <input
+              type="date"
+              class="form-input date-input"
+              [(ngModel)]="toDate"
+              (ngModelChange)="onFilterChange()"
+              aria-label="Hingga Tanggal"
+            />
+          </div>
+
+          @if (searchQuery || filterPaymentMethod || fromDate || toDate) {
+            <button class="btn btn-secondary btn-sm" type="button" (click)="clearFilters()">{{ 'Hapus filter' | translate }}</button>
+          }
+          <span class="filter-total">{{ totalItems() }} {{ 'penjualan' | translate }}</span>
+        </app-filter-bar>
+
+        <!-- Sales Table -->
+        <article class="card table-card">
+          @if (loading()) {
+            <div class="state-wrapper">
+              <app-loading-state [label]="'Memuat riwayat penjualan...' | translate" />
+            </div>
+          } @else if (error()) {
+            <div class="state-wrapper state-error">
+              <p>{{ error() }}</p>
+              <button class="btn btn-secondary btn-sm mt-2" type="button" (click)="loadSales()">{{ 'Coba Lagi' | translate }}</button>
+            </div>
+          } @else if (sales().length === 0) {
+            <div class="state-wrapper state-empty">
+              <h3>{{ 'Belum Ada Transaksi Penjualan' | translate }}</h3>
+              <p class="mb-3">{{ 'Buka POS dan lakukan penjualan pertama Anda.' | translate }}</p>
+              <a class="btn btn-primary" routerLink="/sales/pos">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                {{ 'Buka POS / Kasir' | translate }}
+              </a>
+            </div>
+          } @else {
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 50px" class="text-center">{{ 'No' | translate }}</th>
+                    <th scope="col" style="width: 140px">{{ 'No. Transaksi' | translate }}</th>
+                    <th scope="col" style="width: 150px">{{ 'Tanggal' | translate }}</th>
+                    <th scope="col">{{ 'Kasir' | translate }}</th>
+                    <th scope="col">{{ 'Pelanggan' | translate }}</th>
+                    <th scope="col" class="text-right" style="width: 120px">{{ 'Total' | translate }}</th>
+                    <th scope="col" style="width: 110px" class="text-center">{{ 'Cara Bayar' | translate }}</th>
+                    <th scope="col" style="width: 100px" class="text-center">{{ 'Status' | translate }}</th>
+                    <th scope="col" style="width: 140px" class="text-center">{{ 'Aksi' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of sales(); track s.id; let idx = $index) {
+                    <tr class="clickable-row" (click)="viewDetail(s.id)">
+                      <td class="text-center text-muted" (click)="$event.stopPropagation()">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                      <td><strong>{{ s.saleNumber }}</strong></td>
+                      <td>{{ s.saleDate | dateId: 'date' }}</td>
+                      <td>{{ s.cashierName }}</td>
+                      <td>{{ s.customerName || '&mdash;' }}</td>
+                      <td class="text-right font-mono">{{ s.totalAmount | currencyIdr }}</td>
+                      <td class="text-center">
+                        <app-badge variant="info">{{ (s.paymentMethod || '') | translate }}</app-badge>
+                      </td>
+                      <td class="text-center">
+                        <app-badge [variant]="s.status === 'Completed' ? 'success' : 'danger'">
+                          {{ (s.status === 'Completed' ? 'Selesai' : 'Dibatalkan') | translate }}
+                        </app-badge>
+                      </td>
+                      <td class="text-center" (click)="$event.stopPropagation()">
+                        <div class="action-buttons flex gap-1 justify-center">
+                          <button class="btn btn-ghost btn-sm" type="button" (click)="viewDetail(s.id)">{{ 'Detail' | translate }}</button>
+                          @if (s.status === 'Completed') {
+                            <button class="btn btn-ghost btn-sm text-warning" type="button" (click)="openVoidConfirm(s)">{{ 'Batalkan' | translate }}</button>
+                          }
+                          @if (isOwner()) {
+                            <button class="btn btn-ghost btn-sm text-danger font-semibold" type="button" (click)="openDeleteConfirm(s)">{{ 'Hapus' | translate }}</button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <app-pagination
+              [currentPage]="currentPage"
+              [totalPages]="totalPages()"
+              [totalItems]="totalItems()"
+              [pageSize]="pageSize"
+              (pageChange)="onPageChange($event)"
+            />
+          }
+        </article>
+      } @else {
+        <!-- Returns Filters -->
+        <app-filter-bar>
+          <div class="filter-date-group">
+            <input
+              type="date"
+              class="form-input date-input"
+              [(ngModel)]="returnFromDate"
+              (ngModelChange)="onReturnFilterChange()"
+              aria-label="Dari Tanggal"
+            />
+            <span class="date-separator">{{ 's/d' | translate }}</span>
+            <input
+              type="date"
+              class="form-input date-input"
+              [(ngModel)]="returnToDate"
+              (ngModelChange)="onReturnFilterChange()"
+              aria-label="Hingga Tanggal"
+            />
+          </div>
+
+          @if (returnFromDate || returnToDate) {
+            <button class="btn btn-secondary btn-sm" type="button" (click)="clearReturnFilters()">{{ 'Hapus filter' | translate }}</button>
+          }
+          <span class="filter-total">{{ returnTotalItems() }} {{ 'retur' | translate }}</span>
+        </app-filter-bar>
+
+        <!-- Returns Table -->
+        <article class="card table-card">
+          @if (returnLoading()) {
+            <div class="state-wrapper">
+              <app-loading-state [label]="'Memuat retur penjualan...' | translate" />
+            </div>
+          } @else if (returnError()) {
+            <div class="state-wrapper state-error">
+              <p>{{ returnError() }}</p>
+              <button class="btn btn-secondary btn-sm mt-2" type="button" (click)="loadReturns()">{{ 'Coba Lagi' | translate }}</button>
+            </div>
+          } @else if (returns().length === 0) {
+            <div class="state-wrapper state-empty">
+              <h3>{{ 'Belum Ada Retur Penjualan' | translate }}</h3>
+              <p>{{ 'Transaksi retur barang belanja akan muncul di sini. Buka detail transaksi penjualan untuk memproses retur.' | translate }}</p>
+            </div>
+          } @else {
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 50px" class="text-center">{{ 'No' | translate }}</th>
+                    <th scope="col">{{ 'No. Retur' | translate }}</th>
+                    <th scope="col">{{ 'No. Penjualan' | translate }}</th>
+                    <th scope="col">{{ 'Tanggal Retur' | translate }}</th>
+                    <th scope="col" class="text-right">{{ 'Total Refund' | translate }}</th>
+                    <th scope="col" class="text-center">{{ 'Status' | translate }}</th>
+                    <th scope="col" style="width: 100px" class="text-center">{{ 'Aksi' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ret of returns(); track ret.id; let idx = $index) {
+                    <tr class="clickable-row" (click)="viewReturnDetail(ret.id)">
+                      <td class="text-center text-muted" (click)="$event.stopPropagation()">{{ (returnPage - 1) * pageSize + idx + 1 }}</td>
+                      <td><strong>{{ ret.returnNumber }}</strong></td>
+                      <td>{{ ret.saleNumber }}</td>
+                      <td>{{ ret.returnDate | dateId: 'date' }}</td>
+                      <td class="text-right font-mono text-danger font-semibold">{{ ret.totalRefundAmount | currencyIdr }}</td>
+                      <td class="text-center">
+                        <app-badge variant="info">{{ ret.status | translate }}</app-badge>
+                      </td>
+                      <td class="text-center" (click)="$event.stopPropagation()">
+                        <button class="btn btn-ghost btn-sm" type="button" (click)="viewReturnDetail(ret.id)">{{ 'Detail' | translate }}</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <app-pagination
+              [currentPage]="returnPage"
+              [totalPages]="returnTotalPages()"
+              [totalItems]="returnTotalItems()"
+              [pageSize]="pageSize"
+              (pageChange)="onReturnPageChange($event)"
+            />
+          }
+        </article>
+      }
+    </section>
+
+    <!-- Modal Detail View (Sale) -->
+    @if (showDetailDrawer()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeDetailDrawer()" role="presentation"></div>
+        
+        <!-- Modal Container -->
+        <aside class="relative bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col w-full max-w-2xl z-10 transform scale-100 transition-all duration-300" role="dialog" [attr.aria-labelledby]="drawerTitleId">
+          @if (detailLoading()) {
+            <div class="p-12 flex flex-col items-center justify-center">
+              <app-loading-state [label]="'Memuat rincian...' | translate" />
+            </div>
+          } @else {
+            @if (detailData(); as detail) {
+              <!-- Header -->
+              <header class="flex items-center justify-between px-6 py-4 border-b border-border bg-white shrink-0">
+                <div class="flex flex-col">
+                  <h3 [id]="drawerTitleId" class="text-lg font-bold text-primary-900">{{ detail.saleNumber }}</h3>
+                  <span class="text-xs text-text-muted mt-0.5">{{ detail.saleDate | dateId: 'datetime' }}</span>
+                </div>
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-soft transition-colors text-xl font-bold" type="button" aria-label="Tutup panel" (click)="closeDetailDrawer()">&times;</button>
+              </header>
+
+              <!-- Body -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Summary Info -->
+                <div class="grid grid-cols-3 gap-4 bg-surface-soft border border-border p-4 rounded-xl">
+                  <div class="flex flex-col">
+                    <span class="text-xs text-text-muted font-medium">{{ 'Kasir' | translate }}</span>
+                    <strong class="text-sm text-text mt-0.5">{{ detail.cashier?.name || '&mdash;' }}</strong>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs text-text-muted font-medium">{{ 'Pelanggan' | translate }}</span>
+                    <strong class="text-sm text-text mt-0.5">{{ detail.customer?.name || ('Umum' | translate) }}</strong>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs text-text-muted font-medium">{{ 'Status' | translate }}</span>
+                    <div class="mt-0.5">
+                      <app-badge [variant]="detail.status === 'Completed' ? 'success' : 'danger'">
+                        {{ detail.status | translate }}
+                      </app-badge>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Items Table -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-semibold text-primary-900">{{ 'Daftar Barang Belanja' | translate }}</h4>
+                  <div class="table-container border border-border rounded-xl overflow-hidden">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th scope="col">{{ 'Nama Barang' | translate }}</th>
+                          <th scope="col" class="text-right" style="width: 70px">{{ 'Qty' | translate }}</th>
+                          <th scope="col" class="text-right" style="width: 90px">{{ 'Harga' | translate }}</th>
+                          <th scope="col" class="text-right" style="width: 100px">{{ 'Subtotal' | translate }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of detail.items; track item.productId) {
+                          <tr>
+                            <td><strong class="text-text font-semibold">{{ item.productName }}</strong></td>
+                            <td class="text-right font-mono">{{ item.quantity }}</td>
+                            <td class="text-right font-mono">{{ item.unitPrice | currencyIdr }}</td>
+                            <td class="text-right font-mono"><strong>{{ item.subtotal | currencyIdr }}</strong></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Calculations -->
+                <div class="bg-surface-soft border border-border p-4 rounded-xl space-y-2.5">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-text-muted">{{ 'Subtotal' | translate }}</span>
+                    <span class="font-mono text-text">{{ detail.subtotal | currencyIdr }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm text-danger">
+                    <span>{{ 'Diskon' | translate }}</span>
+                    <span class="font-mono">-{{ detail.discountAmount | currencyIdr }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-text-muted">{{ 'Pajak' | translate }}</span>
+                    <span class="font-mono text-text">{{ detail.taxAmount | currencyIdr }}</span>
+                  </div>
+                  <div class="flex justify-between text-base font-bold pt-2 border-t border-border">
+                    <span class="text-primary-900">{{ 'Total Bersih' | translate }}</span>
+                    <span class="font-mono text-primary-600">{{ detail.totalAmount | currencyIdr }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm pt-2 border-t border-border">
+                    <span class="text-text-muted">{{ 'Dibayar' | translate }} ({{ detail.paymentMethod }})</span>
+                    <span class="font-mono text-text">{{ detail.amountPaid | currencyIdr }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm font-semibold">
+                    <span class="text-text-muted">{{ 'Kembalian' | translate }}</span>
+                    <span class="font-mono text-text">{{ detail.changeAmount | currencyIdr }}</span>
+                  </div>
+                </div>
+
+                @if (detail.notes) {
+                  <div class="bg-surface-soft border border-border p-4 rounded-xl">
+                    <span class="text-xs font-semibold text-text-muted">{{ 'Catatan' | translate }}:</span>
+                    <p class="text-sm text-text-soft mt-1">{{ detail.notes }}</p>
+                  </div>
+                }
+              </div>
+
+              <!-- Footer -->
+              <footer class="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface-soft shrink-0 flex-wrap">
+                @if (detail.status === 'Completed') {
+                  <button class="btn btn-primary" type="button" (click)="openReturnForm(detail)">
+                    {{ 'Retur Barang Belanja' | translate }}
+                  </button>
+                  <button class="btn btn-warning" type="button" (click)="openVoidConfirmFromDetail(detail)">
+                    {{ 'Batalkan Penjualan' | translate }}
+                  </button>
+                }
+                @if (isOwner()) {
+                  <button class="btn btn-danger font-semibold" type="button" (click)="openDeleteConfirmFromDetail(detail)">
+                    {{ 'Hapus Permanen' | translate }}
+                  </button>
+                }
+                <button class="btn btn-secondary" type="button" (click)="closeDetailDrawer()">{{ 'Tutup' | translate }}</button>
+              </footer>
+            }
+          }
+        </aside>
+      </div>
+    }
+
+    <!-- Modal Return Detail View -->
+    @if (showReturnDetailDrawer() && selectedReturn()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeReturnDetailDrawer()" role="presentation"></div>
+        
+        <!-- Modal Container -->
+        <aside class="relative bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col w-full max-w-2xl z-10 transform scale-100 transition-all duration-300" role="dialog" [attr.aria-label]="'Detail Retur Penjualan' | translate">
+          <header class="flex items-center justify-between px-6 py-4 border-b border-border bg-white shrink-0">
+            <div class="flex flex-col">
+              <h3 class="text-lg font-bold text-primary-900">{{ selectedReturn()?.returnNumber }}</h3>
+              <span class="text-xs text-text-muted mt-0.5">{{ 'Tanggal' | translate }}: {{ selectedReturn()?.returnDate | dateId: 'datetime' }}</span>
+            </div>
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-soft transition-colors text-xl font-bold" type="button" aria-label="Tutup" (click)="closeReturnDetailDrawer()">&times;</button>
+          </header>
+
+          <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div class="grid grid-cols-3 gap-4 bg-surface-soft border border-border p-4 rounded-xl">
+              <div class="flex flex-col">
+                <span class="text-xs text-text-muted font-medium">{{ 'No. Penjualan' | translate }}</span>
+                <strong class="text-sm text-text mt-0.5">{{ selectedReturn()?.saleNumber }}</strong>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-xs text-text-muted font-medium">{{ 'Total Refund' | translate }}</span>
+                <strong class="text-sm text-danger font-semibold font-mono mt-0.5">{{ selectedReturn()?.totalRefundAmount | currencyIdr }}</strong>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-xs text-text-muted font-medium">{{ 'Status' | translate }}</span>
+                <div class="mt-0.5">
+                  <app-badge variant="success">{{ (selectedReturn()?.status || '') | translate }}</app-badge>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h4 class="text-sm font-semibold text-primary-900">{{ 'Alasan Retur' | translate }}</h4>
+              <div class="bg-surface-soft border border-border p-4 rounded-xl italic text-text-soft text-sm">
+                "{{ selectedReturn()?.reason }}"
+              </div>
+            </div>
+
+            @if (selectedReturn()?.notes) {
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-primary-900">{{ 'Catatan Tambahan' | translate }}</h4>
+                <div class="bg-surface-soft border border-border p-4 rounded-xl text-text-soft text-sm">
+                  {{ selectedReturn()?.notes }}
+                </div>
+              </div>
+            }
+
+            <div class="space-y-2">
+              <h4 class="text-sm font-semibold text-primary-900">{{ 'Barang yang Diretur' | translate }}</h4>
+              <div class="table-container border border-border rounded-xl overflow-hidden">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ 'Nama Barang' | translate }}</th>
+                      <th scope="col" class="text-right" style="width: 80px">{{ 'Qty Retur' | translate }}</th>
+                      <th scope="col" class="text-right" style="width: 120px">{{ 'Refund Satuan' | translate }}</th>
+                      <th scope="col" class="text-right" style="width: 120px">{{ 'Subtotal Refund' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of selectedReturn()?.items; track item.saleItemId) {
+                      <tr>
+                        <td><strong class="text-text font-semibold">{{ item.productName }}</strong></td>
+                        <td class="text-right font-mono">{{ item.quantity }}</td>
+                        <td class="text-right font-mono">{{ (item.refundAmount || item.unitPrice || 0) | currencyIdr }}</td>
+                        <td class="text-right font-mono text-danger font-semibold">{{ (item.quantity * (item.refundAmount || item.unitPrice || 0)) | currencyIdr }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <footer class="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface-soft shrink-0">
+            <button class="btn btn-secondary btn-block" type="button" (click)="closeReturnDetailDrawer()">{{ 'Tutup' | translate }}</button>
+          </footer>
+        </aside>
+      </div>
+    }
+
+    <!-- Modal Return Form -->
+    @if (showReturnFormDrawer()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeReturnForm()" role="presentation"></div>
+        
+        <!-- Modal Container -->
+        <aside class="relative bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col w-full max-w-2xl z-10 transform scale-100 transition-all duration-300" role="dialog" [attr.aria-label]="'Form Retur Barang' | translate">
+          <header class="flex items-center justify-between px-6 py-4 border-b border-border bg-white shrink-0">
+            <div class="flex flex-col">
+              <h3 class="text-lg font-bold text-primary-900">{{ 'Retur Barang' | translate }}: {{ returnSaleNumber }}</h3>
+              <span class="text-xs text-text-muted mt-0.5">{{ 'Pilih item, tentukan kuantitas, nominal refund dan alasan.' | translate }}</span>
+            </div>
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-soft transition-colors text-xl font-bold" type="button" aria-label="Tutup" (click)="closeReturnForm()">&times;</button>
+          </header>
+
+          <div class="flex-1 overflow-y-auto p-6">
+            <form #rForm="ngForm" (ngSubmit)="onSubmitReturn(rForm)" novalidate class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                  <label class="form-label" for="ret-date">{{ 'Tanggal Retur' | translate }} <span class="required-mark text-danger">*</span></label>
+                  <input
+                    id="ret-date"
+                    type="date"
+                    class="form-input w-full"
+                    name="returnDate"
+                    [(ngModel)]="returnFormModel.returnDate"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="ret-reason">{{ 'Alasan Retur' | translate }} <span class="required-mark text-danger">*</span></label>
+                  <input
+                    id="ret-reason"
+                    type="text"
+                    class="form-input w-full"
+                    name="reason"
+                    [(ngModel)]="returnFormModel.reason"
+                    [placeholder]="'Misal: Barang kedaluwarsa, Rusak/Cacat' | translate"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="ret-notes">{{ 'Catatan Tambahan' | translate }}</label>
+                <textarea
+                  id="ret-notes"
+                  class="form-input w-full"
+                  rows="2"
+                  name="notes"
+                  [(ngModel)]="returnFormModel.notes"
+                  [placeholder]="'Keterangan pendukung (opsional)' | translate"
+                ></textarea>
+              </div>
+
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-primary-900">{{ 'Pilih Barang untuk Diretur' | translate }}</h4>
+                <div class="table-container border border-border rounded-xl overflow-hidden">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style="width: 40px" class="text-center">{{ 'Pilih' | translate }}</th>
+                        <th scope="col">{{ 'Nama' | translate }}</th>
+                        <th scope="col" class="text-center" style="width: 80px">{{ 'Qty Retur' | translate }}</th>
+                        <th scope="col" class="text-right" style="width: 120px">{{ 'Refund/Item' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (item of returnItems; track item.saleItemId; let idx = $index) {
+                        <tr [class.selected-row]="item.selected">
+                          <td class="text-center">
+                            <input
+                              type="checkbox"
+                              [(ngModel)]="item.selected"
+                              [name]="'sel-' + idx"
+                              aria-label="Pilih item ini"
+                              class="w-4 h-4 text-primary-600 border-border rounded focus:ring-primary-500"
+                            />
+                          </td>
+                          <td>
+                            <strong class="text-text font-semibold">{{ item.productName }}</strong>
+                            <div class="text-xs text-text-muted mt-0.5">{{ 'Maks' | translate }}: {{ item.soldQty }} {{ 'item' | translate }} &#64; {{ item.unitPrice | currencyIdr }}</div>
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              class="form-input text-center p-1 w-full"
+                              [(ngModel)]="item.returnQty"
+                              [name]="'qty-' + idx"
+                              [min]="1"
+                              [max]="item.soldQty"
+                              [disabled]="!item.selected"
+                              aria-label="Kuantitas retur"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              class="form-input text-right p-1 w-full"
+                              [(ngModel)]="item.refundAmount"
+                              [name]="'ref-' + idx"
+                              [min]="0"
+                              [max]="item.unitPrice"
+                              [disabled]="!item.selected"
+                              aria-label="Refund per item"
+                            />
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="bg-surface-soft border border-border p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm font-semibold text-text-muted">{{ 'Total Refund Diperkirakan' | translate }}</span>
+                <span class="text-base font-bold text-danger font-mono">{{ calculateTotalRefund() | currencyIdr }}</span>
+              </div>
+
+              <div class="flex justify-end gap-3 pt-4 border-t border-border">
+                <button class="btn btn-secondary" type="button" (click)="closeReturnForm()" [disabled]="saving()">{{ 'Batal' | translate }}</button>
+                <button class="btn btn-primary" type="submit" [disabled]="saving() || !isAnyItemReturnSelected() || rForm.invalid">
+                  {{ saving() ? ('Memproses...' | translate) : ('Proses Retur' | translate) }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </aside>
+      </div>
+    }
+
+    <!-- Void Dialog -->
+    @if (showVoidDialog()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeVoidDialog()" role="presentation"></div>
+        
+        <!-- Modal Container -->
+        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 transform scale-100 transition-all duration-300" role="dialog" aria-labelledby="void-modal-title">
+          <h3 id="void-modal-title" class="text-lg font-bold text-primary-900">{{ 'Batalkan Transaksi Penjualan' | translate }}</h3>
+          <p class="text-sm text-text-soft mt-2">{{ 'Anda akan membatalkan penjualan' | translate }} <strong>{{ voidTarget()?.saleNumber }}</strong>. {{ 'Stok barang akan dikembalikan ke posisi semula.' | translate }}</p>
+
+          <div class="form-group mt-4">
+            <label class="form-label block text-xs font-semibold text-text-muted mb-1" for="v-reason">{{ 'Alasan' | translate }} <span class="text-danger">*</span></label>
+            <input
+              id="v-reason"
+              type="text"
+              class="form-input w-full"
+              [placeholder]="'Alasan pembatalan...' | translate"
+              required
+              [(ngModel)]="voidReason"
+              #reasonInput="ngModel"
+            />
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" (click)="closeVoidDialog()" [disabled]="voidSaving()">{{ 'Batal' | translate }}</button>
+            <button class="btn btn-danger" (click)="executeVoid()" [disabled]="!voidReason.trim() || voidSaving()">
+              @if (voidSaving()) {
+                <span class="btn-spinner mr-2"></span>
+                {{ 'Memproses...' | translate }}
+              } @else {
+                {{ 'Ya, Batalkan' | translate }}
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Delete Dialog (Owner only) -->
+    @if (showDeleteDialog()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeDeleteDialog()" role="presentation"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 transform scale-100 transition-all duration-300" role="dialog" aria-labelledby="delete-modal-title">
+          <h3 id="delete-modal-title" class="text-lg font-bold text-danger-900">{{ 'Hapus Transaksi Penjualan' | translate }}</h3>
+          <p class="text-sm text-text-soft mt-2">{{ 'Apakah Anda yakin ingin menghapus penjualan' | translate }} <strong>{{ deleteTarget()?.saleNumber }}</strong> secara permanen? {{ 'Tindakan ini tidak dapat dibatalkan.' | translate }}</p>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" (click)="closeDeleteDialog()" [disabled]="deleteSaving()">{{ 'Batal' | translate }}</button>
+            <button class="btn btn-danger" (click)="executeDelete()" [disabled]="deleteSaving()">
+              @if (deleteSaving()) {
+                <span class="btn-spinner mr-2"></span>
+                {{ 'Menghapus...' | translate }}
+              } @else {
+                {{ 'Ya, Hapus' | translate }}
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }

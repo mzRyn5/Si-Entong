@@ -1,0 +1,607 @@
+<!-- Page stack -->
+<section class="p-6">
+  <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-primary-900">{{ 'Pembelian & Retur' | translate }}</h2>
+      <p class="text-sm text-text-muted mt-1">{{ 'Kelola riwayat pembelian barang dari supplier serta pengembalian barang (retur pembelian).' | translate }}</p>
+    </div>
+    <a class="px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all inline-flex items-center gap-2" routerLink="/purchases/create">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {{ 'Buat Pembelian' | translate }}
+    </a>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <nav class="tabs-navigation" aria-label="Menu Pembelian">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'purchases'"
+      type="button"
+      (click)="switchTab('purchases')"
+    >
+      {{ 'Riwayat Pembelian' | translate }}
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab() === 'returns'"
+      type="button"
+      (click)="switchTab('returns')"
+    >
+      {{ 'Retur Pembelian' | translate }}
+    </button>
+  </nav>
+
+  @if (activeTab() === 'purchases') {
+    <!-- Purchases Filters -->
+    <app-filter-bar>
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          type="search"
+          [placeholder]="'Cari No. Pembelian...' | translate"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Cari pembelian"
+        />
+      </div>
+
+      <select
+        class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+        [(ngModel)]="filterSupplier"
+        (ngModelChange)="onFilterChange()"
+        aria-label="Filter Supplier"
+      >
+        <option value="">{{ 'Semua Supplier' | translate }}</option>
+        @for (s of suppliers(); track s.id) {
+          <option [value]="s.id">{{ s.name }}</option>
+        }
+      </select>
+
+      <div class="filter-date-group">
+        <input
+          type="date"
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="fromDate"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Dari Tanggal"
+        />
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <input
+          type="date"
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="toDate"
+          (ngModelChange)="onFilterChange()"
+          aria-label="Hingga Tanggal"
+        />
+      </div>
+
+      @if (searchQuery || filterSupplier || fromDate || toDate) {
+        <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="clearFilters()">{{ 'Hapus filter' | translate }}</button>
+      }
+      <span class="text-sm text-text-muted">{{ totalItems() }} {{ 'transaksi' | translate }}</span>
+    </app-filter-bar>
+
+    <!-- Purchases Table -->
+    <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+      @if (loading()) {
+        <div class="flex items-center justify-center py-12">
+          <app-loading-state [label]="'Memuat pembelian...' | translate" />
+        </div>
+      } @else if (error()) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <p class="text-danger mb-3">{{ error() }}</p>
+          <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="loadPurchases()">{{ 'Coba Lagi' | translate }}</button>
+        </div>
+      } @else if (purchases().length === 0) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Belum Ada Transaksi Pembelian' | translate }}</h3>
+          <p class="text-sm text-text-muted mb-3">{{ 'Catat transaksi pembelian barang masuk pertama Anda.' | translate }}</p>
+          <a class="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all text-sm inline-flex items-center gap-2" routerLink="/purchases/create">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {{ 'Buat Pembelian' | translate }}
+          </a>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-surface-soft border-b border-border">
+              <tr>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 50px">{{ 'No' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 140px">{{ 'No. Pembelian' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 150px">{{ 'Tanggal' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Supplier' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 130px">{{ 'Total Transaksi' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 120px">{{ 'Status Bayar' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 100px">{{ 'Status' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 150px">{{ 'Aksi' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (p of purchases(); track p.id; let idx = $index) {
+                <tr class="hover:bg-surface-soft/50 cursor-pointer transition-colors" (click)="viewDetail(p.id)">
+                  <td class="px-4 py-3 text-center text-sm text-text-muted" (click)="$event.stopPropagation()">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-text">{{ p.purchaseNumber }}</td>
+                  <td class="px-4 py-3 text-sm text-text">{{ p.purchaseDate | dateId: 'date' }}</td>
+                  <td class="px-4 py-3 text-sm text-text">{{ p.supplierName || '—' }}</td>
+                  <td class="px-4 py-3 text-right text-sm font-mono text-text">{{ p.totalAmount | currencyIdr }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <app-badge variant="info">{{ p.paymentStatus | translate }}</app-badge>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <app-badge [variant]="p.status === 'Posted' ? 'success' : 'danger'">
+                      {{ (p.status === 'Posted' ? 'Posted' : 'Dibatalkan') | translate }}
+                    </app-badge>
+                  </td>
+                  <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
+                    <div class="flex items-center justify-center gap-1">
+                      <button class="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" type="button" (click)="viewDetail(p.id)">{{ 'Detail' | translate }}</button>
+                      @if (p.status === 'Posted') {
+                        <button class="px-3 py-1 text-sm text-warning hover:bg-warning-soft rounded-lg transition-colors" type="button" (click)="openVoidConfirm(p)">{{ 'Batalkan Transaksi' | translate }}</button>
+                      }
+                      @if (isOwner()) {
+                        <button class="px-3 py-1 text-sm text-danger hover:bg-danger-soft rounded-lg transition-colors font-semibold" type="button" (click)="openDeleteConfirm(p)">{{ 'Hapus' | translate }}</button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <app-pagination
+          [currentPage]="currentPage"
+          [totalPages]="totalPages()"
+          [totalItems]="totalItems()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        />
+      }
+    </article>
+  } @else {
+    <!-- Returns Filters -->
+    <app-filter-bar>
+      <div class="filter-date-group">
+        <input
+          type="date"
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="returnFromDate"
+          (ngModelChange)="onReturnFilterChange()"
+          aria-label="Dari Tanggal"
+        />
+        <span class="date-separator">{{ 's/d' | translate }}</span>
+        <input
+          type="date"
+          class="px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [(ngModel)]="returnToDate"
+          (ngModelChange)="onReturnFilterChange()"
+          aria-label="Hingga Tanggal"
+        />
+      </div>
+
+      @if (returnFromDate || returnToDate) {
+        <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="clearReturnFilters()">{{ 'Hapus filter' | translate }}</button>
+      }
+      <span class="text-sm text-text-muted">{{ returnTotalItems() }} {{ 'retur' | translate }}</span>
+    </app-filter-bar>
+
+    <!-- Returns Table -->
+    <article class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+      @if (returnLoading()) {
+        <div class="flex items-center justify-center py-12">
+          <app-loading-state [label]="'Memuat retur pembelian...' | translate" />
+        </div>
+      } @else if (returnError()) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <p class="text-danger mb-3">{{ returnError() }}</p>
+          <button class="px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text hover:bg-surface-soft transition-colors" type="button" (click)="loadReturns()">{{ 'Coba Lagi' | translate }}</button>
+        </div>
+      } @else if (returns().length === 0) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <h3 class="text-lg font-semibold text-primary-900 mb-1">{{ 'Belum Ada Retur Pembelian' | translate }}</h3>
+          <p class="text-sm text-text-muted">{{ 'Transaksi retur pembelian barang ke supplier akan muncul di sini. Buka detail transaksi pembelian untuk memproses retur.' | translate }}</p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-surface-soft border-b border-border">
+              <tr>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 50px">{{ 'No' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'No. Retur' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'No. Pembelian' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Tanggal Retur' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Total Retur' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide">{{ 'Status' | translate }}</th>
+                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-text-muted uppercase tracking-wide" style="width: 100px">{{ 'Aksi' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (ret of returns(); track ret.id; let idx = $index) {
+                <tr class="hover:bg-surface-soft/50 cursor-pointer transition-colors" (click)="viewReturnDetail(ret.id)">
+                  <td class="px-4 py-3 text-center text-sm text-text-muted" (click)="$event.stopPropagation()">{{ (returnPage - 1) * pageSize + idx + 1 }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-text">{{ ret.returnNumber }}</td>
+                  <td class="px-4 py-3 text-sm text-text">{{ ret.purchaseNumber }}</td>
+                  <td class="px-4 py-3 text-sm text-text">{{ ret.returnDate | dateId: 'date' }}</td>
+                  <td class="px-4 py-3 text-right text-sm font-mono font-semibold text-danger">{{ ret.totalAmount | currencyIdr }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <app-badge variant="info">{{ ret.status | translate }}</app-badge>
+                  </td>
+                  <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
+                    <button class="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" type="button" (click)="viewReturnDetail(ret.id)">{{ 'Detail' | translate }}</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <app-pagination
+          [currentPage]="returnPage"
+          [totalPages]="returnTotalPages()"
+          [totalItems]="returnTotalItems()"
+          [pageSize]="pageSize"
+          (pageChange)="onReturnPageChange($event)"
+        />
+      }
+    </article>
+  }
+</section>
+
+<!-- Side Drawer Detail View (Purchase) -->
+@if (showDetailDrawer()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeDetailDrawer()" role="presentation"></div>
+  <aside class="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform transition-transform translate-x-0" role="dialog" [attr.aria-labelledby]="drawerTitleId">
+    @if (detailLoading()) {
+      <div class="flex items-center justify-center h-full">
+        <app-loading-state [label]="'Memuat rincian...' | translate" />
+      </div>
+    } @else {
+      @if (detailData(); as detail) {
+        <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h3 class="text-lg font-bold text-primary-900" [id]="drawerTitleId">{{ detail.purchaseNumber }}</h3>
+            <span class="text-sm text-text-muted">{{ 'Tanggal' | translate }}: {{ detail.purchaseDate | dateId: 'datetime' }}</span>
+          </div>
+          <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted" type="button" aria-label="Tutup panel" (click)="closeDetailDrawer()">&times;</button>
+        </header>
+
+        <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 140px);">
+          <!-- Summary Info -->
+          <div class="bg-surface-soft rounded-xl p-4 mb-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-xs text-text-muted">{{ 'Supplier' | translate }}</span>
+                <p class="text-sm font-semibold text-text">{{ detail.supplier.name || '—' }}</p>
+              </div>
+              <div>
+                <span class="text-xs text-text-muted">{{ 'Cara Pembayaran' | translate }}</span>
+                <p class="text-sm font-semibold text-text">{{ (detail.paymentMethod || '') | translate }} ({{ (detail.paymentStatus || '') | translate }})</p>
+              </div>
+              <div class="col-span-2">
+                <span class="text-xs text-text-muted">{{ 'Status Transaksi' | translate }}</span>
+                <div class="mt-1">
+                  <app-badge [variant]="detail.status === 'Posted' ? 'success' : 'danger'">
+                    {{ (detail.status === 'Voided' ? 'Dibatalkan' : detail.status) | translate }}
+                  </app-badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Daftar Barang' | translate }}</h4>
+            <div class="overflow-x-auto border border-border rounded-xl">
+              <table class="w-full">
+                <thead class="bg-surface-soft border-b border-border">
+                  <tr>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-text-muted">{{ 'Nama Barang' | translate }}</th>
+                    <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 70px">{{ 'Qty' | translate }}</th>
+                    <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 100px">{{ 'Harga' | translate }}</th>
+                    <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 110px">{{ 'Subtotal' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  @for (item of detail.items; track item.productId) {
+                    <tr>
+                      <td class="px-3 py-2 text-sm font-semibold text-text">{{ item.productName }}</td>
+                      <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ item.quantity }}</td>
+                      <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ item.unitPrice | currencyIdr }}</td>
+                      <td class="px-3 py-2 text-right text-sm font-mono font-semibold text-text">{{ item.subtotal | currencyIdr }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Calculations -->
+          <div class="bg-surface-soft rounded-xl p-4 mb-4">
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-text-muted">{{ 'Subtotal' | translate }}</span>
+              <span class="font-mono text-text">{{ detail.subtotal | currencyIdr }}</span>
+            </div>
+            <div class="flex justify-between text-sm mb-2 text-danger">
+              <span class="text-text-muted">{{ 'Diskon' | translate }}</span>
+              <span class="font-mono">-{{ detail.discountAmount | currencyIdr }}</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold pt-2 border-t border-border mt-2">
+              <span class="text-primary-900">{{ 'Total Bersih' | translate }}</span>
+              <span class="font-mono text-primary-700">{{ detail.totalAmount | currencyIdr }}</span>
+            </div>
+          </div>
+
+          @if (detail.notes) {
+            <div class="bg-surface-soft rounded-xl p-4">
+              <span class="text-xs text-text-muted">{{ 'Catatan' | translate }}:</span>
+              <p class="text-sm text-text mt-1">{{ detail.notes }}</p>
+            </div>
+          }
+        </div>
+
+        <footer class="px-6 py-4 border-t border-border bg-surface flex flex-col gap-2">
+          @if (detail.status === 'Posted') {
+            <button class="w-full px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all" type="button" (click)="openReturnForm(detail)">
+              {{ 'Retur Barang ke Supplier' | translate }}
+            </button>
+            <button class="w-full px-4 py-2.5 bg-gradient-to-r from-warning to-warning/90 text-white font-semibold rounded-xl shadow-lg shadow-warning/25 hover:shadow-xl hover:from-warning/90 hover:to-warning transition-all" type="button" (click)="openVoidConfirmFromDetail(detail)">
+              {{ 'Batalkan Transaksi' | translate }}
+            </button>
+          }
+          @if (isOwner()) {
+            <button class="w-full px-4 py-2.5 bg-gradient-to-r from-danger to-danger/90 text-white font-semibold rounded-xl shadow-lg shadow-danger/25 hover:shadow-xl hover:from-danger/90 hover:to-danger transition-all" type="button" (click)="openDeleteConfirmFromDetail(detail)">
+              {{ 'Hapus Permanen' | translate }}
+            </button>
+          }
+          <button class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeDetailDrawer()">{{ 'Tutup' | translate }}</button>
+        </footer>
+      }
+    }
+  </aside>
+}
+
+<!-- Side Drawer Return Detail View -->
+@if (showReturnDetailDrawer() && selectedReturn()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeReturnDetailDrawer()" role="presentation"></div>
+  <aside class="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform transition-transform translate-x-0" role="dialog" aria-labelledby="ret-detail-title">
+    <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div>
+        <h3 id="ret-detail-title" class="text-lg font-bold text-primary-900">{{ selectedReturn()?.returnNumber }}</h3>
+        <span class="text-sm text-text-muted">{{ 'Tanggal' | translate }}: {{ selectedReturn()?.returnDate | dateId: 'datetime' }}</span>
+      </div>
+      <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted text-xl font-bold" type="button" aria-label="Tutup" (click)="closeReturnDetailDrawer()">&times;</button>
+    </header>
+
+    <div class="p-6 overflow-y-auto" style="height: calc(100vh - 80px);">
+      <div class="bg-surface-soft rounded-xl p-4 mb-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-xs text-text-muted">{{ 'No. Pembelian' | translate }}</span>
+            <p class="text-sm font-semibold text-text">{{ selectedReturn()?.purchaseNumber }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-text-muted">{{ 'Total Pengembalian' | translate }}</span>
+            <p class="text-sm font-semibold font-mono text-danger">{{ selectedReturn()?.totalAmount | currencyIdr }}</p>
+          </div>
+          <div class="col-span-2">
+            <span class="text-xs text-text-muted">{{ 'Status' | translate }}</span>
+            <div class="mt-1">
+              <app-badge variant="success">{{ (selectedReturn()?.status || '') | translate }}</app-badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Alasan Retur' | translate }}</h4>
+        <div class="bg-surface-soft rounded-xl p-3 italic text-sm text-text-muted">
+          "{{ selectedReturn()?.reason }}"
+        </div>
+      </div>
+
+      @if (selectedReturn()?.notes) {
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Catatan Tambahan' | translate }}</h4>
+          <div class="bg-surface-soft rounded-xl p-3 text-sm text-text">
+            {{ selectedReturn()?.notes }}
+          </div>
+        </div>
+      }
+
+      <div>
+        <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Barang yang Diretur' | translate }}</h4>
+        <div class="overflow-x-auto border border-border rounded-xl">
+          <table class="w-full">
+            <thead class="bg-surface-soft border-b border-border">
+              <tr>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-text-muted">{{ 'Nama Barang' | translate }}</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 80px">{{ 'Qty Retur' | translate }}</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 120px">{{ 'Harga Beli Satuan' | translate }}</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 120px">{{ 'Subtotal' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (item of selectedReturn()?.items; track item.purchaseItemId) {
+                <tr>
+                  <td class="px-3 py-2 text-sm font-semibold text-text">{{ item.productName }}</td>
+                  <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ item.quantity }}</td>
+                  <td class="px-3 py-2 text-right text-sm font-mono text-text">{{ (item.amount || item.unitPrice || 0) | currencyIdr }}</td>
+                  <td class="px-3 py-2 text-right text-sm font-mono font-semibold text-danger">{{ (item.quantity * (item.amount || item.unitPrice || 0)) | currencyIdr }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <footer class="px-6 py-4 border-t border-border bg-surface">
+      <button class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeReturnDetailDrawer()">{{ 'Tutup' | translate }}</button>
+    </footer>
+  </aside>
+}
+
+<!-- Side Drawer Return Form -->
+@if (showReturnFormDrawer()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeReturnForm()" role="presentation"></div>
+  <aside class="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform transition-transform translate-x-0" role="dialog" [attr.aria-label]="'Form Retur Pembelian' | translate">
+    <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div>
+        <h3 class="text-lg font-bold text-primary-900">{{ 'Retur Pembelian' | translate }}: {{ returnPurchaseNumber }}</h3>
+        <span class="text-sm text-text-muted">{{ 'Pilih item, tentukan kuantitas, nilai refund, dan alasan retur.' | translate }}</span>
+      </div>
+      <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-soft transition-colors text-text-muted" type="button" aria-label="Tutup" (click)="closeReturnForm()">&times;</button>
+    </header>
+
+    <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 140px);">
+      <form #rForm="ngForm" (ngSubmit)="onSubmitReturn(rForm)" novalidate>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-text mb-1.5" for="ret-date">{{ 'Tanggal Retur' | translate }} <span class="text-danger">*</span></label>
+          <input
+            id="ret-date"
+            type="date"
+            class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            name="returnDate"
+            [(ngModel)]="returnFormModel.returnDate"
+            required
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-text mb-1.5" for="ret-reason">{{ 'Alasan Retur' | translate }} <span class="text-danger">*</span></label>
+          <textarea
+            id="ret-reason"
+            class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 resize-none"
+            rows="2"
+            name="reason"
+            [(ngModel)]="returnFormModel.reason"
+            [placeholder]="'Misal: Barang rusak dari pengiriman, Salah produk, dll.' | translate"
+            required
+          ></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-text mb-1.5" for="ret-notes">{{ 'Catatan Tambahan' | translate }}</label>
+          <textarea
+            id="ret-notes"
+            class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 resize-none"
+            rows="2"
+            name="notes"
+            [(ngModel)]="returnFormModel.notes"
+            [placeholder]="'Keterangan pendukung (opsional)' | translate"
+          ></textarea>
+        </div>
+
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-primary-900 mb-2">{{ 'Pilih Barang untuk Diretur' | translate }}</h4>
+          <div class="overflow-x-auto border border-border rounded-xl">
+            <table class="w-full">
+              <thead class="bg-surface-soft border-b border-border">
+                <tr>
+                  <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-text-muted" style="width: 40px">{{ 'Pilih' | translate }}</th>
+                  <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-text-muted">{{ 'Nama' | translate }}</th>
+                  <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-text-muted" style="width: 80px">{{ 'Qty Retur' | translate }}</th>
+                  <th scope="col" class="px-3 py-2 text-right text-xs font-semibold text-text-muted" style="width: 120px">{{ 'Harga/Item' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (item of returnItems; track item.purchaseItemId; let idx = $index) {
+                  <tr [class.bg-primary-50]="item.selected">
+                    <td class="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        class="w-4 h-4 text-primary-600 rounded border-border focus:ring-primary-500"
+                        [(ngModel)]="item.selected"
+                        [name]="'sel-' + idx"
+                        aria-label="Pilih item ini"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <p class="text-sm font-semibold text-text">{{ item.productName }}</p>
+                      <p class="text-[10px] text-text-muted font-mono">{{ 'Beli' | translate }}: {{ item.boughtQty }} {{ 'item' | translate }} &#64; {{ item.unitPrice | currencyIdr }}</p>
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        type="number"
+                        class="w-full px-2 py-1 text-center text-sm font-mono bg-surface border border-border rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-50 disabled:bg-surface-soft"
+                        [(ngModel)]="item.returnQty"
+                        [name]="'qty-' + idx"
+                        [min]="1"
+                        [max]="item.boughtQty"
+                        [disabled]="!item.selected"
+                        aria-label="Kuantitas retur"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        type="number"
+                        class="w-full px-2 py-1 text-right text-sm font-mono bg-surface border border-border rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-50 disabled:bg-surface-soft"
+                        [(ngModel)]="item.returnAmount"
+                        [name]="'ref-' + idx"
+                        [min]="0"
+                        [max]="item.unitPrice"
+                        [disabled]="!item.selected"
+                        aria-label="Nilai per item"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-surface-soft rounded-xl p-4 mb-6">
+          <div class="flex justify-between text-sm font-semibold">
+            <span>{{ 'Total Retur Diperkirakan' | translate }}</span>
+            <span class="text-danger font-mono">{{ calculateTotalRefund() | currencyIdr }}</span>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" type="button" (click)="closeReturnForm()" [disabled]="saving()">{{ 'Batal' | translate }}</button>
+          <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/25 hover:shadow-xl hover:from-primary-700 hover:to-primary-800 transition-all" type="submit" [disabled]="saving() || !isAnyItemReturnSelected() || rForm.invalid">
+            {{ saving() ? ('Memproses...' | translate) : ('Proses Retur' | translate) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </aside>
+}
+
+<!-- Void Dialog -->
+@if (showVoidDialog()) {
+  <div class="fixed inset-0 bg-black/30 z-40 transition-opacity" (click)="closeVoidDialog()" role="presentation"></div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-labelledby="void-modal-title">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <h3 class="text-lg font-bold text-primary-900 mb-2" id="void-modal-title">{{ 'Batalkan Transaksi Pembelian' | translate }}</h3>
+      <p class="text-sm text-text-muted mb-4">{{ 'Anda akan membatalkan transaksi' | translate }} <strong>{{ voidTarget()?.purchaseNumber }}</strong>. {{ 'Stok barang akan berkurang kembali.' | translate }}</p>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-text mb-1.5" for="v-reason">{{ 'Alasan Pembatalan' | translate }} <span class="text-danger">*</span></label>
+        <input
+          id="v-reason"
+          type="text"
+          class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          [placeholder]="'Alasan pembatalan...' | translate"
+          required
+          [(ngModel)]="voidReason"
+          #reasonInput="ngModel"
+        />
+      </div>
+
+      <div class="flex gap-3">
+        <button class="flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-text hover:bg-surface-soft transition-colors" (click)="closeVoidDialog()" [disabled]="voidSaving()">{{ 'Batal' | translate }}</button>
+        <button class="flex-1 px-4 py-2.5 bg-gradient-to-r from-danger to-danger/90 text-white font-semibold rounded-xl shadow-lg shadow-danger/25 hover:shadow-xl hover:from-danger/90 hover:to-danger transition-all" (click)="executeVoid()" [disabled]="!voidReason.trim() || voidSaving()">
+          @if (voidSaving()) {
+            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>
+            {{ 'Memproses...' | translate }}
+          } @else {
+            {{ 'Ya, Batalkan' | translate }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

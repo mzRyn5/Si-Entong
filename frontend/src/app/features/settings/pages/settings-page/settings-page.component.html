@@ -1,0 +1,284 @@
+<div class="container mx-auto p-6 max-w-6xl">
+  <div class="mb-8">
+    <h1 class="font-sans text-3xl font-extrabold text-primary-900 tracking-tight">{{ 'Pengaturan' | translate }}</h1>
+    <p class="text-text-muted mt-1 font-medium">{{ 'Kelola profil toko, preferensi sistem, dan keamanan akun Anda.' | translate }}</p>
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-8">
+    <!-- Left Navigation Tabs Card -->
+    <div class="w-full md:w-64 flex-shrink-0">
+      <div class="bg-white rounded-2xl border border-border shadow-sm overflow-hidden p-3 space-y-1">
+        <button
+          (click)="setTab('profile')"
+          [class]="activeTab === 'profile' ? 'bg-primary-100 text-primary-700 font-semibold' : 'text-text-muted hover:bg-surface-soft hover:text-text'"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-150 text-left text-sm font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          {{ 'Profil Toko' | translate }}
+        </button>
+
+        <button
+          (click)="setTab('settings')"
+          [class]="activeTab === 'settings' ? 'bg-primary-100 text-primary-700 font-semibold' : 'text-text-muted hover:bg-surface-soft hover:text-text'"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-150 text-left text-sm font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ 'Pengaturan Toko' | translate }}
+        </button>
+
+        <button
+          (click)="setTab('security')"
+          [class]="activeTab === 'security' ? 'bg-primary-100 text-primary-700 font-semibold' : 'text-text-muted hover:bg-surface-soft hover:text-text'"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-150 text-left text-sm font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          {{ 'Keamanan & Password' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Panel Card -->
+    <div class="flex-1 bg-white rounded-2xl border border-border shadow-sm overflow-hidden p-6 md:p-8">
+      
+      <!-- Tab 1: Profil Toko -->
+      <div *ngIf="activeTab === 'profile'">
+        <h2 class="text-xl font-bold text-primary-900 mb-6 flex items-center gap-2">
+          {{ 'Profil Toko' | translate }}
+        </h2>
+
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Nama Toko -->
+            <div class="col-span-1 md:col-span-2">
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Nama Toko *' | translate }}</label>
+              <input
+                type="text"
+                formControlName="name"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                [placeholder]="'Masukkan nama toko Anda' | translate"
+              />
+              <div *ngIf="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" class="text-danger text-xs mt-1.5 font-bold">
+                {{ 'Nama Toko wajib diisi dan maksimal 100 karakter.' | translate }}
+              </div>
+            </div>
+
+            <!-- Telepon Toko -->
+            <div>
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Nomor Telepon' | translate }}</label>
+              <input
+                type="text"
+                formControlName="phone"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                [placeholder]="'Contoh: 08123456789' | translate"
+              />
+            </div>
+
+            <!-- Mata Uang -->
+            <div>
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Mata Uang *' | translate }}</label>
+              <input
+                type="text"
+                formControlName="currency"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                [placeholder]="'IDR, USD, dll.' | translate"
+              />
+            </div>
+
+            <!-- Alamat -->
+            <div class="col-span-1 md:col-span-2">
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Alamat Toko' | translate }}</label>
+              <textarea
+                formControlName="address"
+                rows="3"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                [placeholder]="'Tuliskan alamat lengkap toko' | translate"
+              ></textarea>
+            </div>
+
+            <!-- Timezone -->
+            <div>
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Zona Waktu (Timezone) *' | translate }}</label>
+              <input
+                type="text"
+                formControlName="timezone"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                placeholder="Asia/Jakarta"
+              />
+            </div>
+
+            <!-- Receipt Footer -->
+            <div class="col-span-1 md:col-span-2">
+              <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Footer Struk Belanja' | translate }}</label>
+              <input
+                type="text"
+                formControlName="receiptFooter"
+                class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                [placeholder]="'Contoh: Terima kasih atas kunjungan Anda!' | translate"
+              />
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button
+              type="submit"
+              [disabled]="profileForm.invalid || isProfileLoading"
+              class="px-6 py-3 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-800 hover:to-primary-900 text-white rounded-xl font-bold shadow-lg shadow-primary-700/10 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 transition duration-150 flex items-center gap-2 cursor-pointer"
+            >
+              <span *ngIf="isProfileLoading" class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+              {{ isProfileLoading ? ('Menyimpan...' | translate) : ('Simpan Profil' | translate) }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 2: Pengaturan Toko -->
+      <div *ngIf="activeTab === 'settings'">
+        <h2 class="text-xl font-bold text-primary-900 mb-6">
+          {{ 'Pengaturan Sistem' | translate }}
+        </h2>
+
+        <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="space-y-6">
+          <div class="space-y-4">
+            
+            <!-- Allow Negative Stock Toggle -->
+            <label class="flex items-center gap-4 p-4 bg-surface-soft hover:bg-primary-100/30 rounded-xl transition cursor-pointer border border-border/50">
+              <input type="checkbox" formControlName="allowNegativeStock" class="w-5 h-5 text-primary-600 border-border rounded focus:ring-primary-500/20" />
+              <div>
+                <span class="block text-sm font-semibold text-text">{{ 'Izinkan Stok Negatif' | translate }}</span>
+                <span class="block text-xs text-text-soft mt-0.5">{{ 'Memperbolehkan penjualan barang meskipun stok sistem habis/nol.' | translate }}</span>
+              </div>
+            </label>
+
+            <!-- Enable Barcode Toggle -->
+            <label class="flex items-center gap-4 p-4 bg-surface-soft hover:bg-primary-100/30 rounded-xl transition cursor-pointer border border-border/50">
+              <input type="checkbox" formControlName="enableBarcode" class="w-5 h-5 text-primary-600 border-border rounded focus:ring-primary-500/20" />
+              <div>
+                <span class="block text-sm font-semibold text-text">{{ 'Aktifkan Fitur Barcode Scanner' | translate }}</span>
+                <span class="block text-xs text-text-soft mt-0.5">{{ 'Memungkinkan pencarian barang menggunakan scanner barcode pada halaman penjualan.' | translate }}</span>
+              </div>
+            </label>
+
+            <!-- Enable Purchase Price Tracking Toggle -->
+            <label class="flex items-center gap-4 p-4 bg-surface-soft hover:bg-primary-100/30 rounded-xl transition cursor-pointer border border-border/50">
+              <input type="checkbox" formControlName="enablePurchasePriceTracking" class="w-5 h-5 text-primary-600 border-border rounded focus:ring-primary-500/20" />
+              <div>
+                <span class="block text-sm font-semibold text-text">{{ 'Lacak Harga Beli Produk' | translate }}</span>
+                <span class="block text-xs text-text-soft mt-0.5">{{ 'Mencatat riwayat harga beli dan menghitung estimasi keuntungan bersih.' | translate }}</span>
+              </div>
+            </label>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <!-- Default Low Stock Threshold -->
+              <div>
+                <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Batas Minimum Stok Tipis (Threshold) *' | translate }}</label>
+                <input
+                  type="number"
+                  formControlName="defaultLowStockThreshold"
+                  class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+                  [placeholder]="'Contoh: 10' | translate"
+                />
+              </div>
+
+              <!-- Default Payment Method -->
+              <div>
+                <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Metode Pembayaran Utama *' | translate }}</label>
+                <select
+                  formControlName="defaultPaymentMethod"
+                  class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white transition-all font-medium text-text"
+                >
+                  <option value="Cash">{{ 'Tunai (Cash)' | translate }}</option>
+                  <option value="Transfer">{{ 'Transfer Bank' | translate }}</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="DebitCard">{{ 'Kartu Debit' | translate }}</option>
+                  <option value="Other">{{ 'Lain-Lain' | translate }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button
+              type="submit"
+              [disabled]="settingsForm.invalid || isSettingsLoading"
+              class="px-6 py-3 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-800 hover:to-primary-900 text-white rounded-xl font-bold shadow-lg shadow-primary-700/10 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 transition duration-150 flex items-center gap-2 cursor-pointer"
+            >
+              <span *ngIf="isSettingsLoading" class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+              {{ isSettingsLoading ? ('Menyimpan...' | translate) : ('Simpan Pengaturan' | translate) }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 3: Keamanan & Password -->
+      <div *ngIf="activeTab === 'security'">
+        <h2 class="text-xl font-bold text-primary-900 mb-6">
+          {{ 'Keamanan Akun' | translate }}
+        </h2>
+
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="space-y-6 max-w-lg">
+          
+          <!-- Password Lama -->
+          <div>
+            <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Password Saat Ini *' | translate }}</label>
+            <input
+              type="password"
+              formControlName="oldPassword"
+              class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+              [placeholder]="'Masukkan password lama Anda' | translate"
+            />
+            <div *ngIf="passwordForm.get('oldPassword')?.invalid && passwordForm.get('oldPassword')?.touched" class="text-danger text-xs mt-1.5 font-bold">
+              {{ 'Password lama wajib diisi.' | translate }}
+            </div>
+          </div>
+
+          <!-- Password Baru -->
+          <div>
+            <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Password Baru *' | translate }}</label>
+            <input
+              type="password"
+              formControlName="newPassword"
+              class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+              [placeholder]="'Minimal 6 karakter' | translate"
+            />
+            <div *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="text-danger text-xs mt-1.5 font-bold">
+              {{ 'Password baru wajib diisi dan minimal 6 karakter.' | translate }}
+            </div>
+          </div>
+
+          <!-- Konfirmasi Password -->
+          <div>
+            <label class="block text-sm font-semibold text-text-muted mb-2 select-none">{{ 'Konfirmasi Password Baru *' | translate }}</label>
+            <input
+              type="password"
+              formControlName="confirmPassword"
+              class="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium text-text placeholder-text-soft"
+              [placeholder]="'Ulangi password baru' | translate"
+            />
+            <div *ngIf="passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched" class="text-danger text-xs mt-1.5 font-bold">
+              {{ 'Konfirmasi password tidak cocok dengan password baru.' | translate }}
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button
+              type="submit"
+              [disabled]="passwordForm.invalid || isPasswordLoading"
+              class="px-6 py-3 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-800 hover:to-primary-900 text-white rounded-xl font-bold shadow-lg shadow-primary-700/10 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 transition duration-150 flex items-center gap-2 cursor-pointer"
+            >
+              <span *ngIf="isPasswordLoading" class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+              {{ isPasswordLoading ? ('Mengubah...' | translate) : ('Ganti Password' | translate) }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>

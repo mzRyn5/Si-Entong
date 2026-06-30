@@ -1,0 +1,68 @@
+<!-- Confirmation Dialog -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="handleCancel()"></div>
+
+  <!-- Dialog -->
+  <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+    <!-- Icon -->
+    <div class="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center"
+      [class.bg-danger-soft]="type === 'danger'"
+      [class.text-danger]="type === 'danger'"
+      [class.bg-warning-soft]="type === 'warning'"
+      [class.text-warning]="type === 'warning'"
+      [class.bg-info-soft]="type === 'info'"
+      [class.text-info]="type === 'info'"
+      [class.bg-success-soft]="type === 'success'"
+      [class.text-success]="type === 'success'"
+    >
+      @switch (type) {
+        @case ('danger') {
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          </svg>
+        }
+        @case ('warning') {
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        }
+        @default {
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        }
+      }
+    </div>
+
+    <!-- Title -->
+    <h3 class="text-lg font-bold text-primary-900 text-center mb-2">{{ title }}</h3>
+
+    <!-- Message -->
+    <p class="text-sm text-text-muted text-center mb-6">{{ message }}</p>
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+      <button
+        type="button"
+        (click)="handleCancel()"
+        class="flex-1 px-4 py-2.5 bg-white border border-border rounded-xl text-text font-semibold hover:bg-surface-soft transition-colors"
+      >
+        {{ cancelLabel }}
+      </button>
+      <button
+        type="button"
+        (click)="handleConfirm()"
+        class="flex-1 px-4 py-2.5 font-semibold rounded-xl text-white transition-colors"
+        [class.bg-danger]="type === 'danger'"
+        [class.hover:bg-danger-600]="type === 'danger'"
+        [class.bg-warning]="type === 'warning'"
+        [class.hover:bg-warning-600]="type === 'warning'"
+        [class.bg-primary-600]="type !== 'danger' && type !== 'warning'"
+        [class.hover:bg-primary-700]="type !== 'danger' && type !== 'warning'"
+      >
+        {{ confirmLabel }}
+      </button>
+    </div>
+  </div>
+</div>

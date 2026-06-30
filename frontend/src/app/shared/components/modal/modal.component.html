@@ -1,0 +1,46 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="onBackdropClick()"></div>
+
+  <!-- Modal Content -->
+  <div
+    class="relative bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col w-full"
+    [class.max-w-md]="size === 'sm'"
+    [class.max-w-lg]="size === 'md'"
+    [class.max-w-2xl]="size === 'lg'"
+    [class.max-w-4xl]="size === 'xl'"
+    [class.max-w-6xl]="size === '2xl'"
+    role="dialog"
+    aria-modal="true"
+  >
+    <!-- Header -->
+    @if (showHeader) {
+      <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+        <h2 class="text-lg font-bold text-primary-900">{{ title }}</h2>
+        <button
+          type="button"
+          (click)="close()"
+          class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-soft transition-colors"
+          aria-label="Close"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+    }
+
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <ng-content></ng-content>
+    </div>
+
+    <!-- Footer -->
+    @if (showFooter) {
+      <footer class="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface-soft">
+        <ng-content select="[modal-footer]"></ng-content>
+      </footer>
+    }
+  </div>
+</div>
