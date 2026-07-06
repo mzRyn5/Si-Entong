@@ -1,0 +1,167 @@
+<!-- Floating Launcher Button -->
+<button 
+  class="ai-chat-launcher shadow-lg hover:shadow-xl transition-all duration-300"
+  *ngIf="!isOpen" 
+  (click)="toggleChat()" 
+  aria-label="Open AI Assistant"
+>
+  <div class="bot-3d-avatar animate-bounce-slow">
+    <div class="bot-head">
+      <div class="bot-ears"></div>
+      <div class="bot-eyes">
+        <span class="eye left"></span>
+        <span class="eye right"></span>
+      </div>
+      <div class="bot-mouth"></div>
+    </div>
+    <div class="bot-body"></div>
+  </div>
+  <span class="notification-badge animate-pulse">AI</span>
+</button>
+
+<!-- Floating Chat Window -->
+<div class="ai-chat-window shadow-2xl flex flex-col transition-all duration-300" *ngIf="isOpen">
+  <!-- Header -->
+  <div class="ai-chat-header flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 text-white rounded-t-2xl shadow-md border-b border-primary-800">
+    <div class="flex items-center gap-2.5">
+      <div class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      </div>
+      <div>
+        <h3 class="font-bold text-sm leading-none m-0 text-white tracking-wide">SobatEntong AI</h3>
+        <span class="text-[9px] text-primary-200 font-semibold tracking-wider">Asisten Toko Cerdas</span>
+      </div>
+    </div>
+    <div class="flex items-center">
+      <button 
+        class="header-icon-btn flex items-center justify-center rounded-full hover:bg-white/10 transition-colors w-8 h-8 text-white" 
+        (click)="toggleChat()" 
+        title="Tutup Chat"
+      >
+        <span class="material-symbols-rounded text-xl">close</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages List -->
+  <div class="ai-chat-messages-container flex-1 overflow-y-auto p-4 bg-bg flex flex-col gap-3" #messagesScroll>
+    <!-- Reset Button link if conversation has user messages -->
+    <button 
+      *ngIf="messages.length > 1" 
+      (click)="clearHistory()" 
+      class="text-[10px] text-primary-600 hover:text-danger font-bold underline self-center mb-2 transition-colors"
+    >
+      Hapus Riwayat Percakapan
+    </button>
+
+    <div 
+      *ngFor="let msg of messages" 
+      [ngClass]="{'user': msg.role === 'user', 'assistant': msg.role === 'assistant', 'tool': msg.role === 'tool'}"
+      class="message-wrapper flex flex-col"
+    >
+      <div class="bubble-container flex gap-2" [ngClass]="{'justify-end': msg.role === 'user'}">
+        <!-- Robot CSS Avatar for assistant -->
+        <div 
+          *ngIf="msg.role === 'assistant'" 
+          class="bot-bubble-avatar-css shrink-0"
+        >
+          <div class="mini-bot-head">
+            <div class="mini-bot-ears"></div>
+            <div class="mini-bot-eyes">
+              <span class="mini-eye left"></span>
+              <span class="mini-eye right"></span>
+            </div>
+            <div class="mini-bot-mouth"></div>
+          </div>
+        </div>
+
+        <div class="message-bubble shadow-sm max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed transition-all">
+          <p class="m-0 whitespace-pre-line">{{ msg.text }}</p>
+          <div *ngIf="msg.role === 'assistant' && msg.usedFallback" class="fallback-indicator text-[10px] text-amber-700 mt-1.5 flex items-center gap-1 font-medium border-t border-amber-100 pt-1.5">
+            <span class="material-symbols-rounded text-[12px]">warning</span>
+            Mode fallback lokal. Gemini live belum tersedia.
+          </div>
+        </div>
+      </div>
+      <span class="timestamp text-[9px] text-text-soft mt-1 self-start ml-9 font-semibold" [ngClass]="{'self-end mr-2 ml-0': msg.role === 'user'}">
+        {{ msg.timestamp | date:'HH:mm' }}
+      </span>
+    </div>
+
+    <!-- Starter Suggestions (Show only when there is only the welcome message) -->
+    <div class="flex flex-col gap-2 p-3 mt-2 bg-primary-100/40 rounded-2xl border border-primary-200/50" *ngIf="messages.length === 1 && !isLoading">
+      <span class="text-[10px] text-primary-800 font-extrabold uppercase tracking-wider px-1">💡 Saran Pertanyaan:</span>
+      <div class="flex flex-col gap-1.5">
+        <button 
+          *ngFor="let suggestion of starterSuggestions" 
+          (click)="selectSuggestion(suggestion.query)"
+          class="w-full text-left text-xs py-2 px-3 bg-white hover:bg-primary-50 border border-primary-200/60 hover:border-primary-400 text-primary-900 font-semibold rounded-xl shadow-sm transition-all duration-200 flex items-center justify-between group cursor-pointer"
+        >
+          <span>{{ suggestion.label }}</span>
+          <span class="text-primary-400 group-hover:text-primary-600 transition-colors">&rarr;</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div class="flex gap-2" *ngIf="isLoading && quickActions.length === 0">
+      <!-- Robot CSS Avatar for typing assistant -->
+      <div class="bot-bubble-avatar-css shrink-0">
+        <div class="mini-bot-head">
+          <div class="mini-bot-ears"></div>
+          <div class="mini-bot-eyes">
+            <span class="mini-eye left"></span>
+            <span class="mini-eye right"></span>
+          </div>
+          <div class="mini-bot-mouth"></div>
+        </div>
+      </div>
+      <app-ai-chat-typing-indicator></app-ai-chat-typing-indicator>
+    </div>
+
+    <!-- Retry Button for Transient Errors -->
+    <div *ngIf="hasError && lastUserMessage && quickActions.length === 0 && !isLoading" class="flex justify-center p-2">
+      <button 
+        (click)="retrySend()" 
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100/50 hover:bg-primary-100 text-primary-700 hover:text-primary-800 border border-primary-300 rounded-lg text-xs font-semibold shadow-sm transition-colors"
+      >
+        <span class="material-symbols-rounded text-sm">refresh</span>
+        Coba Lagi
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Action Buttons -->
+  <div class="quick-actions-bar flex flex-wrap gap-2 p-3 bg-primary-100/20 border-t border-border" *ngIf="quickActions.length > 0">
+    <button 
+      *ngFor="let qa of quickActions" 
+      (click)="onQuickActionClick(qa)"
+      [disabled]="isLoading"
+      class="quick-action-btn flex-1 text-center text-xs py-2.5 px-3 bg-white hover:bg-primary-50 border border-primary-200/60 hover:border-primary-500 text-primary-950 font-bold rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+    >
+      {{ qa.label }}
+    </button>
+  </div>
+
+  <!-- Input Bar (Super Compact with Textarea) -->
+  <div class="ai-chat-input-bar flex items-center p-2.5 bg-white border-t border-border rounded-b-2xl">
+    <div class="relative w-full flex items-center">
+      <textarea 
+        [(ngModel)]="userInput" 
+        placeholder="Jual indomie 3 atau tanya stok..." 
+        (keydown.enter)="$event.preventDefault(); send()" 
+        [disabled]="isLoading"
+        rows="1"
+        class="w-full pl-4 pr-11 py-2.5 border border-border focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 rounded-2xl text-sm outline-none transition-colors resize-none overflow-y-auto max-h-20"
+      ></textarea>
+      <button 
+        (click)="send()" 
+        [disabled]="isLoading || !userInput.trim()"
+        class="absolute right-1.5 bottom-1.5 w-8 h-8 flex items-center justify-center rounded-full bg-primary-600 hover:bg-primary-700 text-white disabled:bg-primary-100 disabled:text-primary-300 transition-colors shadow-sm cursor-pointer"
+      >
+        <span class="material-symbols-rounded text-base font-bold">send</span>
+      </button>
+    </div>
+  </div>
+</div>

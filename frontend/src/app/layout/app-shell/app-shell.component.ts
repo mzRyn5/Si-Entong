@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { SettingsService } from '../../features/settings/settings.service';
 import { LanguageService } from '../../core/services/language.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { AiChatWidgetComponent } from '../../shared/ai-chat/components/ai-chat-widget/ai-chat-widget.component';
 
 interface NavigationItem {
   label: string;
@@ -29,7 +30,7 @@ interface NavigationGroup {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [AsyncPipe, NgClass, NgIf, RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe],
+  imports: [AsyncPipe, NgClass, NgIf, RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, AiChatWidgetComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss'
 })

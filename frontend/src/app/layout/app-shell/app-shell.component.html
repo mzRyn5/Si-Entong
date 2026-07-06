@@ -12,7 +12,7 @@
   <!-- Sidebar - Always visible on desktop, toggleable on mobile -->
   <aside
     class="h-full bg-gradient-to-b from-primary-900 to-primary-800 text-white flex flex-col shrink-0 transition-all duration-200 ease-out"
-    [class.w-\[248px\]]="isSidebarOpen || isMobile"
+    [class.w-\[280px\]]="isSidebarOpen || isMobile"
     [class.w-\[72px\]]="!isSidebarOpen && !isMobile"
     [class.fixed]="isMobile"
     [class.inset-y-0]="isMobile"
@@ -118,24 +118,26 @@
       <!-- Right Actions -->
       <div class="flex items-center gap-2 lg:gap-3">
         <!-- Language Toggle -->
-        <div class="flex items-center bg-primary-100/50 rounded-full p-1 text-xs font-bold">
-          <button
-            type="button"
-            (click)="languageService.setLanguage('id')"
-            class="px-2 py-1 rounded-full transition-all"
-            [class.bg-primary-600]="languageService.currentLang() === 'id'"
-            [class.text-white]="languageService.currentLang() === 'id'"
-            [class.text-primary-700]="languageService.currentLang() !== 'id'"
-          >ID</button>
-          <button
-            type="button"
-            (click)="languageService.setLanguage('en')"
-            class="px-2 py-1 rounded-full transition-all"
-            [class.bg-primary-600]="languageService.currentLang() === 'en'"
-            [class.text-white]="languageService.currentLang() === 'en'"
-            [class.text-primary-700]="languageService.currentLang() !== 'en'"
-          >EN</button>
-        </div>
+        @if (false) {
+          <div class="flex items-center bg-primary-100/50 rounded-full p-1 text-xs font-bold">
+            <button
+              type="button"
+              (click)="languageService.setLanguage('id')"
+              class="px-2 py-1 rounded-full transition-all"
+              [class.bg-primary-600]="languageService.currentLang() === 'id'"
+              [class.text-white]="languageService.currentLang() === 'id'"
+              [class.text-primary-700]="languageService.currentLang() !== 'id'"
+            >ID</button>
+            <button
+              type="button"
+              (click)="languageService.setLanguage('en')"
+              class="px-2 py-1 rounded-full transition-all"
+              [class.bg-primary-600]="languageService.currentLang() === 'en'"
+              [class.text-white]="languageService.currentLang() === 'en'"
+              [class.text-primary-700]="languageService.currentLang() !== 'en'"
+            >EN</button>
+          </div>
+        }
 
         <!-- User Profile -->
         @if (authService.currentUser$ | async; as user) {
@@ -169,7 +171,12 @@
 
     <!-- Footer -->
     <footer class="px-4 lg:px-6 py-4 text-center text-xs text-text-muted border-t border-border bg-white/40 shrink-0">
-      Copyright by mzryan 2026
+      © Copyright by mzryan 2026
     </footer>
   </div>
+
+  <!-- SobatEntong AI Chat Assistant -->
+  @if (!isSysAdmin()) {
+    <app-ai-chat-widget></app-ai-chat-widget>
+  }
 </div>
