@@ -1,0 +1,11 @@
+[build]
+  # Mengarahkan Netlify untuk masuk ke subfolder frontend sebelum membangun aplikasi
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = "dist/store-frontend/browser"
+
+# Mencegah error 404 saat halaman di-refresh pada rute Angular (SPA Redirect)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
