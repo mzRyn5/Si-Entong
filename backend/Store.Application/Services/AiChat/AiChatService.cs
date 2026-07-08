@@ -205,7 +205,7 @@ public class AiChatService : IAiChatService
                 if (payload != null && payload.Items != null && payload.Items.Count > 0)
                 {
                     var productIds = payload.Items.Select(i => i.ProductId).Distinct().ToList();
-                    var productsDict = (await _productRepository.GetByIdsAsync(productIds, cancellationToken))
+                    var productsDict = (await _productRepository.GetByIdsAsync(productIds))
                         .ToDictionary(p => p.Id);
 
                     var enrichedItems = new List<object>();
