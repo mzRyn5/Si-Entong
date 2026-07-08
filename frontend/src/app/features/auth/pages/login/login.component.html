@@ -1,89 +1,111 @@
-<main class="min-h-screen flex flex-col bg-cover bg-center relative" style="background-image: url('assets/login_hero.jpg');">
-  <!-- Overlay to darken the background slightly so text remains readable -->
-  <div class="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px] z-0"></div>
-  
-  <!-- Language Toggle Header -->
-  @if (false) {
-    <header class="flex justify-end p-6 relative z-10">
-      <button
-        type="button"
-        (click)="toggleLanguage()"
-        class="flex items-center gap-2 px-4 py-2 bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium hover:bg-white/30 hover:border-white/40 transition-all backdrop-blur-md"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+<main class="min-h-screen flex flex-col md:flex-row bg-purple-50 relative">
+  <!-- Left Side: Image Banner (Visible only on desktop/tablet) -->
+  <div class="hidden md:flex md:w-1/2 lg:w-3/5 bg-cover bg-center relative items-center justify-center p-12" style="background-image: url('assets/login_hero.jpg');">
+    <!-- Overlay to darken the background slightly so text remains readable -->
+    <div class="absolute inset-0 bg-purple-950/30 backdrop-blur-[1px] z-0"></div>
+    
+    <!-- Branding Content on Left -->
+    <div class="relative z-10 text-white max-w-lg">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-white/10 border border-white/20 text-white rounded-2xl mb-6 shadow-xl backdrop-blur-md">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
         </svg>
-        <span>{{ languageService.currentLang() === 'id' ? 'English' : 'Bahasa Indonesia' }}</span>
-      </button>
-    </header>
-  }
+      </div>
+      <h1 class="text-4xl lg:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Si-<span class="text-primary-300">Entong</span>
+      </h1>
+      <p class="text-white/90 text-lg lg:text-xl font-medium mb-6 leading-relaxed">
+        Sistem manajemen internal toko kelontong berbasis web offline-first yang cepat, handal, dan terintegrasi.
+      </p>
+      <div class="flex items-center gap-3 text-white/70 text-sm">
+        <span class="px-3 py-1 bg-white/10 border border-white/10 rounded-full font-medium">Owner Access</span>
+        <span class="px-3 py-1 bg-white/10 border border-white/10 rounded-full font-medium">Admin Dashboard</span>
+      </div>
+    </div>
+  </div>
 
-  <!-- Login Card Centered -->
-  <div class="flex-1 flex items-center justify-center p-6 relative z-10">
-    <div class="w-full max-w-md bg-white/10 border border-white/20 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-xl flex flex-col">
-      <!-- Brand -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-14 h-14 bg-white/10 border border-white/20 text-white rounded-2xl mb-4 shadow-lg backdrop-blur-md">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Right Side: Form (Full width on mobile, split on desktop) -->
+  <div class="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-between p-8 bg-gradient-to-tr from-purple-50 to-indigo-50/50 text-slate-800 relative z-10 min-h-screen md:min-h-0 border-l border-purple-100">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+      <!-- Brand Logo for mobile -->
+      <div class="flex md:hidden items-center gap-2">
+        <div class="w-9 h-9 bg-primary-600 text-white flex items-center justify-center rounded-xl shadow-md">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <path d="M16 10a4 4 0 0 1-8 0" />
           </svg>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-1">{{ 'Masuk' | translate }}</h2>
-        <p class="text-white/70 text-sm">{{ 'Silakan login menggunakan akun toko Anda' | translate }}</p>
+        <span class="font-extrabold text-primary-600 text-lg">Si-Entong</span>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Login Form Centered -->
+    <div class="w-full max-w-md mx-auto my-auto py-8">
+      <div class="mb-8 text-center md:text-left">
+        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
+          {{ 'Masuk' | translate }}
+        </h2>
+        <p class="text-slate-500 text-sm font-medium">
+          {{ 'Silakan login menggunakan akun toko Anda' | translate }}
+        </p>
       </div>
 
-      <!-- Form -->
-      <form #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)" novalidate class="space-y-5">
+      <form #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)" novalidate class="space-y-6">
         <!-- Username Field -->
         <div>
-          <label for="username" class="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">{{ 'Username' | translate }}</label>
+          <label for="username" class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{{ 'Username' | translate }}</label>
           <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
             <input
               id="username"
               type="text"
-              class="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-white/60 focus:ring-3 focus:ring-white/10 transition-all font-medium"
+              class="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium shadow-sm"
               name="username"
               [(ngModel)]="username"
               required
               placeholder="Username"
               #uInput="ngModel"
-              [class.border-danger]="loginForm.submitted && uInput.invalid"
+              [class.border-red-500]="loginForm.submitted && uInput.invalid"
             />
           </div>
-          <p *ngIf="loginForm.submitted && uInput.invalid" class="mt-1.5 text-xs text-red-200 font-medium">{{ 'Username wajib diisi.' | translate }}</p>
+          <p *ngIf="loginForm.submitted && uInput.invalid" class="mt-2 text-xs text-red-500 font-medium">{{ 'Username wajib diisi.' | translate }}</p>
         </div>
 
         <!-- Password Field -->
         <div>
-          <label for="password" class="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">{{ 'Password' | translate }}</label>
+          <label for="password" class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{{ 'Password' | translate }}</label>
           <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
             <input
               id="password"
               [type]="showPassword() ? 'text' : 'password'"
-              class="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-white/60 focus:ring-3 focus:ring-white/10 transition-all font-medium"
+              class="w-full pl-11 pr-12 py-3.5 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium shadow-sm"
               name="password"
               [(ngModel)]="password"
               required
               placeholder="Password"
               #pInput="ngModel"
-              [class.border-danger]="loginForm.submitted && pInput.invalid"
+              [class.border-red-500]="loginForm.submitted && pInput.invalid"
             />
             <button
               type="button"
               (click)="togglePasswordVisibility()"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+              class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
               aria-label="Toggle password visibility"
             >
               <svg *ngIf="!showPassword()" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -96,14 +118,14 @@
               </svg>
             </button>
           </div>
-          <p *ngIf="loginForm.submitted && pInput.invalid" class="mt-1.5 text-xs text-red-200 font-medium">{{ 'Password wajib diisi.' | translate }}</p>
+          <p *ngIf="loginForm.submitted && pInput.invalid" class="mt-2 text-xs text-red-500 font-medium">{{ 'Password wajib diisi.' | translate }}</p>
         </div>
 
         <!-- Submit Button -->
         <button
           type="submit"
           [disabled]="loading()"
-          class="w-full py-3.5 px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-bold rounded-xl shadow-lg shadow-primary-900/20 hover:shadow-xl transition-all flex items-center justify-center gap-2 border border-white/10"
+          class="w-full py-4 px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-900/20 hover:shadow-xl transition-all flex items-center justify-center gap-2 border border-white/10"
         >
           <svg *ngIf="loading()" class="animate-spin w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -113,10 +135,10 @@
         </button>
       </form>
     </div>
-  </div>
 
-  <!-- Footer -->
-  <footer class="text-center py-4 text-xs text-white/50 relative z-10">
-    © Copyright by mzryan 2026
-  </footer>
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-400 font-medium">
+      © Copyright by mzryan 2026
+    </footer>
+  </div>
 </main>
