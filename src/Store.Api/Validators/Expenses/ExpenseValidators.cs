@@ -1,1 +1,0 @@
-namespace Store.Api.Validators;
