@@ -25,7 +25,7 @@ public class ExpenseCategoryConfiguration : IEntityTypeConfiguration<ExpenseCate
         builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
         builder.Property(x => x.DeletedBy).HasColumnName("deleted_by");
 
-        builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => new { x.StoreId, x.Name }).IsUnique();
     }
 }
 

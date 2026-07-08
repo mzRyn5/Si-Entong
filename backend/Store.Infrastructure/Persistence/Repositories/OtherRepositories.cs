@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.Application.Abstractions;
 using Store.Application.Abstractions.Repositories;
 using Store.Domain.Entities;
 using Store.Infrastructure.Persistence;
@@ -182,14 +183,21 @@ public class AuditLogRepository : IAuditLogRepository
 public class StoreProfileRepository : IStoreProfileRepository
 {
     private readonly AppDbContext _context;
+    private readonly ITenantProvider _tenantProvider;
 
-    public StoreProfileRepository(AppDbContext context)
+    public StoreProfileRepository(AppDbContext context, ITenantProvider tenantProvider)
     {
         _context = context;
+        _tenantProvider = tenantProvider;
     }
 
     public async Task<StoreProfile?> GetAsync(CancellationToken cancellationToken = default)
     {
+        var tenantId = _tenantProvider.TenantId;
+        if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+        {
+            return await _context.StoreProfiles.FirstOrDefaultAsync(s => s.Id == tenantId.Value, cancellationToken);
+        }
         return await _context.StoreProfiles.FirstOrDefaultAsync(cancellationToken);
     }
 

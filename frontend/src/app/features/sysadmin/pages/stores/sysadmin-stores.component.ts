@@ -234,6 +234,28 @@ export class SysadminStoresComponent implements OnInit {
     });
   }
 
+  deleteStore(store: StoreProfileDto): void {
+    const confirmMsg = this.languageService.translate('Apakah Anda yakin ingin menghapus toko {0}? Semua data yang berkaitan dengan toko ini termasuk data transaksi, produk, dan akun user akan dihapus secara permanen.').replace('{0}', `"${store.name}"`);
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    this.apiClient.delete<any>(`/sysadmin/stores/${store.id}`).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.loadStores();
+          alert(this.languageService.translate('Toko berhasil dihapus.'));
+        } else {
+          alert(res.message || this.languageService.translate('Gagal menghapus toko.'));
+        }
+      },
+      error: (err) => {
+        alert(err?.error?.message || this.languageService.translate('Terjadi kesalahan saat menghapus toko.'));
+      }
+    });
+  }
+
   formatDate(dateStr: string): string {
     try {
       const d = new Date(dateStr);

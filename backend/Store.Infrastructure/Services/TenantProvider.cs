@@ -21,7 +21,10 @@ public class TenantProvider : ITenantProvider
             var user = _httpContextAccessor.HttpContext?.User;
             if (user == null) return null;
 
-            var storeIdClaim = user.FindFirst("store_id")?.Value;
+            var storeIdClaim = user.FindFirst("store_id")?.Value
+                               ?? user.FindFirst("StoreId")?.Value
+                               ?? user.FindFirst(c => c.Type.EndsWith("store_id", StringComparison.OrdinalIgnoreCase))?.Value;
+
             if (Guid.TryParse(storeIdClaim, out var storeId))
             {
                 return storeId;

@@ -129,6 +129,14 @@
                     {{ store.isActive ? 'block' : 'check_circle' }}
                   </span>
                 </button>
+                <button 
+                  type="button"
+                  class="w-8 h-8 flex items-center justify-center border border-border rounded-lg text-text hover:bg-danger-soft hover:text-danger transition-colors" 
+                  [title]="'Hapus Toko' | translate"
+                  (click)="deleteStore(store)"
+                >
+                  <span class="material-symbols-rounded text-base">delete</span>
+                </button>
               </div>
             </td>
           </tr>

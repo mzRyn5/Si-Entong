@@ -51,6 +51,9 @@ public class SaleServiceTests
             .Setup(x => x.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
         productRepository
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { product });
+        productRepository
             .Setup(x => x.UpdateAsync(product, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 

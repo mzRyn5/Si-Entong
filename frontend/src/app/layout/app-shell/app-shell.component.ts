@@ -134,6 +134,7 @@ export class AppShellComponent implements OnInit {
   }
 
   logout(): void {
+    this.settingsService.clearProfile();
     this.authService.logout();
     void this.router.navigate(['/login']);
   }

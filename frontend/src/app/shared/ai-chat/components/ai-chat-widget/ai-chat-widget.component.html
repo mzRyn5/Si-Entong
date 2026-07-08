@@ -19,6 +19,16 @@
   <span class="notification-badge animate-pulse">AI</span>
 </button>
 
+<!-- Down Arrow Collapse Button (shown when chat is open) -->
+<button 
+  class="ai-chat-launcher collapse-btn shadow-lg hover:shadow-xl transition-all duration-300"
+  *ngIf="isOpen" 
+  (click)="toggleChat()" 
+  aria-label="Close AI Assistant"
+>
+  <span class="material-symbols-rounded text-3xl text-white">keyboard_arrow_down</span>
+</button>
+
 <!-- Floating Chat Window -->
 <div class="ai-chat-window shadow-2xl flex flex-col transition-all duration-300" *ngIf="isOpen">
   <!-- Header -->

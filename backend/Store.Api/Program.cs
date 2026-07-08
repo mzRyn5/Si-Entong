@@ -19,6 +19,16 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+var normalizedContainerUrls = StartupHosting.NormalizeContainerUrls(
+    Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+        ?? Environment.GetEnvironmentVariable("DOTNET_URLS")
+        ?? builder.Configuration["urls"],
+    Environment.GetEnvironmentVariable("PORT"));
+if (!string.IsNullOrWhiteSpace(normalizedContainerUrls))
+{
+    builder.WebHost.UseUrls(normalizedContainerUrls);
+}
+
 // Serilog Configuration
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -78,7 +88,10 @@ builder.Services.AddSwaggerGen(c =>
 
 // Database Configuration
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 // JWT Configuration
 var jwtSecret = StartupSecurity.ValidateJwtSecret(

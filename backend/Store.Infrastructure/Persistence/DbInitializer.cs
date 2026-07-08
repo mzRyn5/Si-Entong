@@ -8,11 +8,20 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(AppDbContext context)
     {
-        var sysadminExists = await context.Users.IgnoreQueryFilters().AnyAsync(u => u.Username == "sysadmin");
-        if (sysadminExists)
+        // Fix ExpenseCategory unique index constraint to be composite (store_id, name)
+        try
         {
-            return; // Database has been seeded
+            await context.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_expense_categories_name\";");
+            await context.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"IX_expense_categories_store_id_name\" ON \"expense_categories\" (\"store_id\", \"name\");");
         }
+        catch
+        {
+            // Ignore if index constraint fixing fails (e.g. table doesn't exist yet)
+        }
+
+        var sysadminExists = await context.Users.IgnoreQueryFilters().AnyAsync(u => u.Username == "sysadmin");
+        if (!sysadminExists)
+        {
 
         // Clean up old data to avoid duplicate key issues in multi-store seed
         try
@@ -335,5 +344,23 @@ public static class DbInitializer
         }
 
         await context.SaveChangesAsync();
+        }
+
+        await EnsureDefaultMasterDataForExistingStores(context);
+    }
+
+    private static async Task EnsureDefaultMasterDataForExistingStores(AppDbContext context)
+    {
+        var stores = await context.StoreProfiles.IgnoreQueryFilters().ToListAsync();
+        foreach (var store in stores)
+        {
+            var storeId = store.Id;
+            var owner = await context.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.StoreId == storeId && u.Role == UserRole.Owner);
+            var creatorId = owner?.Id ?? Guid.Empty;
+
+            await StoreSeeder.SeedStoreMasterDataAsync(context, storeId, creatorId, store.Name);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Store.Api.Configuration;
 using Xunit;
 
@@ -59,6 +60,20 @@ public class StartupConfigurationTests
     }
 
     [Fact]
+    public void DevelopmentAppSettings_ConfiguresLocalPostgresHost()
+    {
+        var appSettingsPath = GetRepositoryPath("Store.Api", "appsettings.Development.json");
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(appSettingsPath)
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        connectionString.Should().Contain("Host=localhost");
+        connectionString.Should().Contain("Database=store_management");
+    }
+
+    [Fact]
     public void GitIgnore_DoesNotContainMergeConflictMarkers()
     {
         var gitIgnore = File.ReadAllText(GetWorkspacePath(".gitignore"));
@@ -112,6 +127,15 @@ public class StartupConfigurationTests
         var programSource = File.ReadAllText(GetRepositoryPath("Store.Api", "Program.cs"));
 
         programSource.Should().Contain("JsonStringEnumConverter");
+    }
+
+    [Theory]
+    [InlineData("http://8080", null, "http://0.0.0.0:8080")]
+    [InlineData("http://8080", "10000", "http://0.0.0.0:10000")]
+    [InlineData("http://0.0.0.0:8080", null, null)]
+    public void StartupHosting_NormalizesContainerUrlsThatCannotBind(string? urls, string? port, string? expected)
+    {
+        StartupHosting.NormalizeContainerUrls(urls, port).Should().Be(expected);
     }
 
     private static string GetRepositoryPath(params string[] parts)

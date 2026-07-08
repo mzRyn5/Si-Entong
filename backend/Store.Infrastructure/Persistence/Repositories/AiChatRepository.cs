@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Store.Application.Abstractions.Repositories;
 using Store.Domain.Entities;
 using Store.Domain.Exceptions;
@@ -13,10 +14,12 @@ namespace Store.Infrastructure.Persistence.Repositories;
 public class AiChatRepository : IAiChatRepository
 {
     private readonly AppDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public AiChatRepository(AppDbContext context)
+    public AiChatRepository(AppDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<AiChatSession> GetOrCreateSessionAsync(Guid sessionId, Guid userId, Guid storeId, CancellationToken cancellationToken = default)
@@ -58,10 +61,11 @@ public class AiChatRepository : IAiChatRepository
             .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
     }
 
-    public async Task SaveMessageAsync(Guid sessionId, string role, string message, string? intent = null, string? toolCalls = null, string? toolResults = null, string? functionName = null, CancellationToken cancellationToken = default)
+    public Task SaveMessageAsync(Guid sessionId, string role, string message, string? intent = null, string? toolCalls = null, string? toolResults = null, string? functionName = null, CancellationToken cancellationToken = default)
     {
         var chatMessage = new AiChatMessage
         {
+            Id = Guid.NewGuid(),
             SessionId = sessionId,
             Role = role,
             Message = message,
@@ -69,20 +73,28 @@ public class AiChatRepository : IAiChatRepository
             ToolCalls = toolCalls,
             ToolResults = toolResults,
             FunctionName = functionName,
+            CreatedAt = DateTime.UtcNow,
             TokenCount = message.Length / 4
         };
-        await _context.AiChatMessages.AddAsync(chatMessage, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+
+        string cacheKey = $"chat_history_{sessionId}";
+        var messages = _cache.Get<List<AiChatMessage>>(cacheKey) ?? new List<AiChatMessage>();
+        messages.Add(chatMessage);
+
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetSlidingExpiration(TimeSpan.FromMinutes(30));
+
+        _cache.Set(cacheKey, messages, cacheEntryOptions);
+        return Task.CompletedTask;
     }
 
-    public async Task<List<AiChatMessage>> GetRecentMessagesAsync(Guid sessionId, int limit, CancellationToken cancellationToken = default)
+    public Task<List<AiChatMessage>> GetRecentMessagesAsync(Guid sessionId, int limit, CancellationToken cancellationToken = default)
     {
-        return await _context.AiChatMessages
-            .Where(m => m.SessionId == sessionId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(limit)
-            .OrderBy(m => m.CreatedAt)
-            .ToListAsync(cancellationToken);
+        string cacheKey = $"chat_history_{sessionId}";
+        var messages = _cache.Get<List<AiChatMessage>>(cacheKey) ?? new List<AiChatMessage>();
+
+        var recentMessages = messages.TakeLast(limit).ToList();
+        return Task.FromResult(recentMessages);
     }
 
     public async Task<AiActionDraft?> GetActiveDraftAsync(Guid sessionId, string actionName, CancellationToken cancellationToken = default)

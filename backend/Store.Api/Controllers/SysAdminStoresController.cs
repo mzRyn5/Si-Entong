@@ -172,7 +172,8 @@ public class SysAdminStoresController : BaseApiController
         };
         _context.Users.Add(ownerUser);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        // Seed default store master data (Units, Categories, Expense Categories, Products, and Opening Stocks)
+        await StoreSeeder.SeedStoreMasterDataAsync(_context, storeId, ownerUser.Id, request.Name, cancellationToken);
 
         var dto = new StoreProfileDto
         {
@@ -295,6 +296,84 @@ public class SysAdminStoresController : BaseApiController
 
         var statusText = store.IsActive ? "diaktifkan" : "dinonaktifkan";
         return SuccessResponse(dto, $"Toko berhasil {statusText}.");
+    }
+
+    /// <summary>
+    /// Delete store and all its associated data (Sys Admin only)
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var store = await _context.StoreProfiles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+        if (store == null)
+        {
+            return NotFoundResponse("Toko", id);
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Delete related entities referencing the store to prevent FK constraint violations
+            await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM audit_logs WHERE store_id = {0} OR user_id IN (SELECT id FROM users WHERE store_id = {0})", 
+                id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM ai_chat_messages WHERE user_id IN (SELECT id FROM users WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM ai_chat_sessions WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM ai_action_logs WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM ai_action_drafts WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM stock_movements WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM stock_adjustment_items WHERE stock_adjustment_id IN (SELECT id FROM stock_adjustments WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM stock_adjustments WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM stock_opname_items WHERE stock_opname_id IN (SELECT id FROM stock_opnames WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM stock_opnames WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM sales_return_items WHERE sales_return_id IN (SELECT id FROM sales_returns WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM sales_returns WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM purchase_items WHERE purchase_id IN (SELECT id FROM purchases WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM purchase_returns WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM purchases WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM expenses WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM expense_categories WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM payable_payments WHERE payable_id IN (SELECT id FROM payables WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM payables WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM receivable_payments WHERE receivable_id IN (SELECT id FROM receivables WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM receivables WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM sale_items WHERE sale_id IN (SELECT id FROM sales WHERE store_id = {0})", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM sales WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM cash_movements WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM cash_sessions WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM products WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM categories WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM units WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM suppliers WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM customers WHERE store_id = {0}", id);
+
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM users WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM store_settings WHERE store_id = {0}", id);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM store_profiles WHERE id = {0}", id);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        return SuccessResponse<object>(null!, "Toko beserta seluruh datanya berhasil dihapus secara permanen.");
     }
 }
 

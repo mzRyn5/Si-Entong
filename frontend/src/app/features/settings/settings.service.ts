@@ -40,4 +40,8 @@ export class SettingsService {
   updateSettings(data: StoreSettings): Observable<ApiResponse<StoreSettings>> {
     return this.api.put<ApiResponse<StoreSettings>>(`${this.storePath}/settings`, data);
   }
+
+  clearProfile(): void {
+    this._storeProfile.next(null);
+  }
 }
